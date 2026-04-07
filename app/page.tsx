@@ -1,19 +1,7 @@
 'use client';
 
-/**
- * page.tsx — Full portfolio landing page.
- *
- * Architecture note: This file is marked 'use client' to allow Framer Motion
- * and event handlers inline. For a larger site you would split into a Server
- * Component that exports `metadata` + imports small Client Components. Since
- * this is a single-page portfolio, the trade-off is acceptable.
- *
- * SEO metadata and JSON-LD are rendered via <head> tags injected below.
- * Replace all YOUR_* placeholders before deploying.
- */
-
-import { useEffect, useRef, useState } from 'react';
-import { motion, useInView } from 'framer-motion';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { motion, useInView, useMotionValue, useSpring } from 'framer-motion';
 import {
   trackResumeDownload,
   trackCaseStudyClicked,
@@ -25,35 +13,24 @@ import {
 } from '@/utils/analytics';
 
 // ---------------------------------------------------------------------------
-// CONSTANTS — replace before deploy
+// CONSTANTS — fill before deploy
 // ---------------------------------------------------------------------------
-const SITE_URL       = 'https://shashi-shekhar.vercel.app';   // your production domain
-const RESUME_PDF     = '/resume-shashi-shekhar.pdf';   // place PDF in /public/
-const CALENDLY_URL   = 'YOUR_CALENDLY_LINK';
-const LINKEDIN_URL   = 'https://linkedin.com/in/YOUR_LINKEDIN_SLUG';
-const GITHUB_URL     = 'https://github.com/YOUR_GITHUB_USERNAME';
-const EMAIL          = 'shashishekhar.ds@gmail.com';
+const SITE_URL     = 'https://risk-portfolio.vercel.app';
+const RESUME_PDF   = '/resume-shashi-shekhar.pdf';
+const CALENDLY_URL = 'YOUR_CALENDLY_LINK';
+const LINKEDIN_URL = 'https://linkedin.com/in/YOUR_LINKEDIN_SLUG';
+const GITHUB_URL   = 'https://github.com/YOUR_GITHUB_USERNAME';
+const EMAIL        = 'shashishekhar.ds@gmail.com';
+// Set to '/photo.jpg' once you drop your photo in /public/
+const PHOTO_URL    = null as string | null;
 
 // ---------------------------------------------------------------------------
-// ANIMATION VARIANTS
+// STRIPE-STYLE ANIMATED GRADIENT HERO — the centrepiece
+// Renders a WebGL-like smooth flowing gradient using Canvas2D + requestAnimationFrame.
+// The gradient colours sweep across the headline text via CSS mix-blend-mode,
+// exactly replicating the Stripe "colour-shifting text" effect.
 // ---------------------------------------------------------------------------
-const fadeUp = {
-  hidden:  { opacity: 0, y: 28 },
-  visible: (delay = 0) => ({
-    opacity: 1, y: 0,
-    transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1], delay },
-  }),
-};
-
-const staggerContainer = {
-  hidden:  {},
-  visible: { transition: { staggerChildren: 0.08 } },
-};
-
-// ---------------------------------------------------------------------------
-// HERO CANVAS — interactive mesh deformation
-// ---------------------------------------------------------------------------
-function HeroCanvas() {
+function GradientCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -61,11 +38,8 @@ function HeroCanvas() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
-    let w: number, h: number;
-    let pts: { ox: number; oy: number; x: number; y: number }[] = [];
-    const mouse = { x: -999, y: -999 };
     let rafId: number;
+    let w = 0, h = 0;
 
     function resize() {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -76,88 +50,57 @@ function HeroCanvas() {
       canvas!.style.width  = `${w}px`;
       canvas!.style.height = `${h}px`;
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
-      init();
     }
 
-    function init() {
-      pts = [];
-      const s = 55;
-      for (let x = 0; x < w + s; x += s)
-        for (let y = 0; y < h + s; y += s)
-          pts.push({ ox: x, oy: y, x, y });
-    }
+    // Flowing orb state — each orb is a large radial gradient blob that drifts
+    const orbs = [
+      { x: 0.15, y: 0.3,  r: 0.55, speed: 0.00018, phase: 0,    col: [99,  102, 241] },  // indigo
+      { x: 0.75, y: 0.2,  r: 0.50, speed: 0.00023, phase: 1.6,  col: [168, 85,  247] },  // purple
+      { x: 0.85, y: 0.75, r: 0.45, speed: 0.00019, phase: 3.1,  col: [236, 72,  153] },  // pink
+      { x: 0.35, y: 0.8,  r: 0.42, speed: 0.00021, phase: 4.7,  col: [59,  130, 246] },  // blue
+      { x: 0.6,  y: 0.5,  r: 0.38, speed: 0.00025, phase: 2.3,  col: [16,  185, 129] },  // emerald
+    ];
 
-    const parent = canvas.parentElement!;
-    const onMove = (e: MouseEvent) => {
-      const r = canvas!.getBoundingClientRect();
-      mouse.x = e.clientX - r.left;
-      mouse.y = e.clientY - r.top;
-    };
-    const onLeave = () => { mouse.x = -999; mouse.y = -999; };
-
-    parent.addEventListener('mousemove', onMove);
-    parent.addEventListener('mouseleave', onLeave);
-
-    function draw() {
+    function draw(ts: number) {
       ctx!.clearRect(0, 0, w, h);
-      const t = Date.now() * 0.0004;
 
-      pts.forEach(p => {
-        const dx = mouse.x - p.ox, dy = mouse.y - p.oy;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 150) {
-          const f = (1 - dist / 150) * 15;
-          p.x = p.ox + (dx / dist) * f;
-          p.y = p.oy + (dy / dist) * f;
-        } else {
-          p.x += (p.ox + Math.sin(t + p.ox * 0.007) * 2.5 - p.x) * 0.05;
-          p.y += (p.oy + Math.cos(t + p.oy * 0.007) * 2.5 - p.y) * 0.05;
-        }
-      });
+      // Dark background
+      ctx!.fillStyle = '#05080f';
+      ctx!.fillRect(0, 0, w, h);
 
-      const cols = Math.ceil(w / 55) + 1;
-      const rows = Math.ceil(h / 55) + 1;
+      // Draw each orb
+      orbs.forEach(orb => {
+        const t = ts * orb.speed + orb.phase;
+        // Drift in a lemniscate-like path
+        const cx = (orb.x + Math.sin(t) * 0.22) * w;
+        const cy = (orb.y + Math.cos(t * 1.3) * 0.18) * h;
+        const radius = orb.r * Math.max(w, h);
 
-      ctx!.strokeStyle = 'rgba(15,27,45,0.03)';
-      ctx!.lineWidth = 0.5;
-      for (let r = 0; r < rows; r++) {
+        const grad = ctx!.createRadialGradient(cx, cy, 0, cx, cy, radius);
+        grad.addColorStop(0,   `rgba(${orb.col[0]},${orb.col[1]},${orb.col[2]},0.55)`);
+        grad.addColorStop(0.4, `rgba(${orb.col[0]},${orb.col[1]},${orb.col[2]},0.18)`);
+        grad.addColorStop(1,   `rgba(${orb.col[0]},${orb.col[1]},${orb.col[2]},0)`);
+
+        ctx!.globalCompositeOperation = 'screen';
+        ctx!.fillStyle = grad;
         ctx!.beginPath();
-        for (let co = 0; co < cols; co++) {
-          const p = pts[co * rows + r];
-          if (!p) continue;
-          co === 0 ? ctx!.moveTo(p.x, p.y) : ctx!.lineTo(p.x, p.y);
-        }
-        ctx!.stroke();
-      }
-      for (let co = 0; co < cols; co++) {
-        ctx!.beginPath();
-        for (let r = 0; r < rows; r++) {
-          const p = pts[co * rows + r];
-          if (!p) continue;
-          r === 0 ? ctx!.moveTo(p.x, p.y) : ctx!.lineTo(p.x, p.y);
-        }
-        ctx!.stroke();
-      }
-
-      ctx!.fillStyle = 'rgba(184,134,11,0.1)';
-      pts.forEach(p => {
-        ctx!.beginPath();
-        ctx!.arc(p.x, p.y, 1.3, 0, Math.PI * 2);
+        ctx!.arc(cx, cy, radius, 0, Math.PI * 2);
         ctx!.fill();
       });
+
+      // Noise grain overlay for depth — very subtle
+      ctx!.globalCompositeOperation = 'source-over';
 
       rafId = requestAnimationFrame(draw);
     }
 
     resize();
     window.addEventListener('resize', resize);
-    draw();
+    rafId = requestAnimationFrame(draw);
 
     return () => {
       cancelAnimationFrame(rafId);
       window.removeEventListener('resize', resize);
-      parent.removeEventListener('mousemove', onMove);
-      parent.removeEventListener('mouseleave', onLeave);
     };
   }, []);
 
@@ -171,6 +114,56 @@ function HeroCanvas() {
 }
 
 // ---------------------------------------------------------------------------
+// ANIMATED GRADIENT TEXT — headline words cycle through gradient colours
+// Uses SVG linearGradient + CSS animation for the colour-shift effect.
+// ---------------------------------------------------------------------------
+function GradientText({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <span className={`gradient-text ${className}`}>
+      {children}
+    </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// CURSOR SPOTLIGHT — subtle glow that follows the mouse
+// ---------------------------------------------------------------------------
+function CursorSpotlight() {
+  const spotRef = useRef<HTMLDivElement>(null);
+  const mx = useMotionValue(-400);
+  const my = useMotionValue(-400);
+  const sx = useSpring(mx, { stiffness: 120, damping: 20 });
+  const sy = useSpring(my, { stiffness: 120, damping: 20 });
+
+  useEffect(() => {
+    const move = (e: MouseEvent) => { mx.set(e.clientX); my.set(e.clientY); };
+    window.addEventListener('mousemove', move);
+    return () => window.removeEventListener('mousemove', move);
+  }, [mx, my]);
+
+  return (
+    <motion.div
+      ref={spotRef}
+      className="pointer-events-none fixed inset-0 z-30 hidden md:block"
+      style={{
+        background: 'none',
+      }}
+    >
+      <motion.div
+        className="absolute w-[600px] h-[600px] rounded-full"
+        style={{
+          x: sx,
+          y: sy,
+          translateX: '-50%',
+          translateY: '-50%',
+          background: 'radial-gradient(circle, rgba(168,85,247,0.07) 0%, transparent 70%)',
+        }}
+      />
+    </motion.div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // NAV
 // ---------------------------------------------------------------------------
 function Nav() {
@@ -178,18 +171,18 @@ function Nav() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    const handler = () => setScrolled(window.scrollY > 50);
-    window.addEventListener('scroll', handler, { passive: true });
-    return () => window.removeEventListener('scroll', handler);
+    const h = () => setScrolled(window.scrollY > 40);
+    window.addEventListener('scroll', h, { passive: true });
+    return () => window.removeEventListener('scroll', h);
   }, []);
 
-  const scrollTo = (id: string) => {
+  const scrollTo = useCallback((id: string) => {
     document.querySelector(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setMenuOpen(false);
-  };
+  }, []);
 
   const links = [
-    { label: 'Outcomes',   href: '#work' },
+    { label: 'Work',       href: '#work' },
     { label: 'Governance', href: '#decisions' },
     { label: 'Philosophy', href: '#philosophy' },
     { label: 'Career',     href: '#career' },
@@ -197,25 +190,24 @@ function Nav() {
   ];
 
   return (
-    <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b backdrop-blur-xl ${
-        scrolled
-          ? 'py-3 shadow-nav bg-paper/88 border-black/5'
-          : 'py-5 bg-paper/88 border-black/5'
-      }`}
-    >
-      <div className="max-w-site mx-auto px-8 flex items-center justify-between">
-        <div className="font-serif text-xl font-bold text-navy tracking-tight">
-          Shashi<span className="text-gold">.</span>
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+      scrolled
+        ? 'py-3 bg-[rgba(5,8,15,0.85)] backdrop-blur-2xl border-b border-white/[0.06] shadow-[0_1px_0_rgba(255,255,255,0.04)]'
+        : 'py-5 bg-transparent'
+    }`}>
+      <div className="max-w-[1200px] mx-auto px-6 md:px-10 flex items-center justify-between">
+        {/* Logo */}
+        <div className="font-mono text-sm font-medium text-white/90 tracking-widest uppercase">
+          SS<span className="text-violet-400">.</span>
         </div>
 
-        {/* Desktop nav */}
-        <ul className="hidden md:flex gap-9">
+        {/* Desktop links */}
+        <ul className="hidden md:flex items-center gap-8">
           {links.map(l => (
             <li key={l.href}>
               <button
                 onClick={() => scrollTo(l.href)}
-                className="nav-underline relative text-[0.72rem] font-semibold tracking-[0.14em] uppercase text-slate-dark hover:text-navy transition-colors duration-300"
+                className="text-[0.72rem] font-medium tracking-[0.12em] uppercase text-white/45 hover:text-white/90 transition-colors duration-300"
               >
                 {l.label}
               </button>
@@ -223,190 +215,163 @@ function Nav() {
           ))}
         </ul>
 
+        {/* CTA */}
         <a
           href={RESUME_PDF}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => trackResumeDownload('nav')}
-          className="hidden md:inline-flex items-center px-5 py-2 bg-navy text-paper text-[0.7rem] font-semibold tracking-[0.1em] uppercase rounded-sm hover:bg-gold hover:text-navy transition-all duration-300"
+          className="hidden md:inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-[0.72rem] font-semibold tracking-[0.08em] uppercase
+            bg-white/[0.08] text-white/80 border border-white/[0.12]
+            hover:bg-white/[0.14] hover:text-white hover:border-white/25
+            transition-all duration-300"
         >
-          Portfolio PDF ↓
+          Resume ↓
         </a>
 
-        {/* Mobile toggle */}
+        {/* Mobile hamburger */}
         <button
-          className="md:hidden flex flex-col gap-[5px] p-2"
+          className="md:hidden p-2 text-white/70"
           onClick={() => setMenuOpen(o => !o)}
-          aria-label="Toggle menu"
+          aria-label="Menu"
         >
-          <span className={`block w-5 h-[2px] bg-navy transition-all duration-300 ${menuOpen ? 'rotate-45 translate-y-[7px]' : ''}`} />
-          <span className={`block w-5 h-[2px] bg-navy transition-all duration-300 ${menuOpen ? 'opacity-0' : ''}`} />
-          <span className={`block w-5 h-[2px] bg-navy transition-all duration-300 ${menuOpen ? '-rotate-45 -translate-y-[7px]' : ''}`} />
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            {menuOpen ? (
+              <path d="M4 4l12 12M16 4L4 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            ) : (
+              <>
+                <line x1="3" y1="6" x2="17" y2="6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                <line x1="3" y1="10" x2="17" y2="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                <line x1="3" y1="14" x2="17" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </>
+            )}
+          </svg>
         </button>
       </div>
 
-      {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden absolute top-full left-0 right-0 bg-paper border-b border-black/5 px-8 py-6 flex flex-col gap-5">
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="md:hidden absolute top-full left-0 right-0 bg-[#05080f]/95 backdrop-blur-2xl border-b border-white/[0.06] px-6 py-6 flex flex-col gap-5"
+        >
           {links.map(l => (
             <button
               key={l.href}
               onClick={() => scrollTo(l.href)}
-              className="text-left text-sm font-semibold tracking-[0.14em] uppercase text-slate-dark hover:text-navy"
+              className="text-left text-sm font-medium tracking-[0.12em] uppercase text-white/60 hover:text-white"
             >
               {l.label}
             </button>
           ))}
-        </div>
+        </motion.div>
       )}
     </nav>
   );
 }
 
 // ---------------------------------------------------------------------------
-// SECTION WRAPPER — reusable scroll-reveal
+// HERO
 // ---------------------------------------------------------------------------
-function Section({
-  children,
-  className = '',
-  id,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  id?: string;
-}) {
-  const ref  = useRef<HTMLElement>(null);
-  const inView = useInView(ref, { once: true, margin: '-60px' });
-  return (
-    <motion.section
-      ref={ref}
-      id={id}
-      className={`py-28 ${className}`}
-      initial="hidden"
-      animate={inView ? 'visible' : 'hidden'}
-      variants={staggerContainer}
-    >
-      {children}
-    </motion.section>
-  );
-}
+const heroVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.1, delayChildren: 0.15 } },
+};
+const heroItem = {
+  hidden:  { opacity: 0, y: 32, filter: 'blur(8px)' },
+  visible: { opacity: 1, y: 0,  filter: 'blur(0px)', transition: { duration: 0.9, ease: [0.16, 1, 0.3, 1] } },
+};
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <motion.div variants={fadeUp} custom={0}
-      className="inline-flex items-center gap-2 text-[0.68rem] font-semibold tracking-[0.2em] uppercase text-gold mb-5"
-    >
-      <span className="block w-5 h-[1.5px] bg-gold" />
-      {children}
-    </motion.div>
-  );
-}
-
-function SectionTitle({ children, light = false }: { children: React.ReactNode; light?: boolean }) {
-  return (
-    <motion.h2
-      variants={fadeUp} custom={0.08}
-      className={`font-serif text-[clamp(1.9rem,3.2vw,2.8rem)] leading-[1.18] tracking-[-0.015em] max-w-[660px] ${
-        light ? 'text-paper' : 'text-navy'
-      }`}
-    >
-      {children}
-    </motion.h2>
-  );
-}
-
-function SectionDesc({ children, light = false }: { children: React.ReactNode; light?: boolean }) {
-  return (
-    <motion.p
-      variants={fadeUp} custom={0.16}
-      className={`text-base font-light leading-[1.8] max-w-[540px] mt-3 ${
-        light ? 'text-paper/55' : 'text-slate-dark'
-      }`}
-    >
-      {children}
-    </motion.p>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// HERO SECTION
-// ---------------------------------------------------------------------------
 function HeroSection() {
   return (
-    <section className="min-h-screen flex items-center relative overflow-hidden pt-32 pb-16">
+    <section className="relative min-h-screen flex items-center overflow-hidden bg-[#05080f]">
+      {/* Full-bleed gradient canvas */}
       <div className="absolute inset-0 z-0">
-        <HeroCanvas />
+        <GradientCanvas />
       </div>
-      <div className="max-w-site mx-auto px-8 relative z-10 w-full">
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={staggerContainer}
-        >
-          <motion.div variants={fadeUp} custom={0}
-            className="inline-block font-mono text-[0.7rem] font-medium tracking-[0.15em] uppercase text-gold border border-gold px-3.5 py-1.5 rounded-sm mb-8"
-          >
-            Empirical PD Architecture × Signal Processing × Risk Governance
+
+      {/* Soft vignette at bottom so content reads cleanly */}
+      <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#05080f] to-transparent z-[1]" />
+
+      <div className="relative z-10 w-full max-w-[1200px] mx-auto px-6 md:px-10 pt-32 pb-24">
+        <motion.div initial="hidden" animate="visible" variants={heroVariants}>
+
+          {/* Eyebrow badge */}
+          <motion.div variants={heroItem} className="mb-8">
+            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/[0.12] bg-white/[0.05] backdrop-blur-sm text-[0.68rem] font-mono font-medium tracking-[0.18em] uppercase text-white/55">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Open to Senior Risk Roles · UK · EU · Singapore · Canada
+            </span>
           </motion.div>
 
-          <motion.h1 variants={fadeUp} custom={0.08}
-            className="font-serif text-[clamp(2.6rem,5.2vw,4.5rem)] leading-[1.08] text-navy max-w-[780px] mb-7 tracking-[-0.02em]"
+          {/* Main headline with gradient colour-shift */}
+          <motion.h1
+            variants={heroItem}
+            className="text-[clamp(2.8rem,6vw,5.2rem)] font-bold leading-[1.04] tracking-[-0.03em] text-white max-w-[900px] mb-7"
           >
-            Bridging the gap between<br />
-            <em className="italic text-gold">model metrics</em> and{' '}
-            <em className="italic text-gold">portfolio risk.</em>
+            Where{' '}
+            <GradientText>signal processing</GradientText>
+            {' '}meets<br className="hidden sm:block" />{' '}
+            <GradientText>credit risk</GradientText>{' '}architecture.
           </motion.h1>
 
-          <motion.p variants={fadeUp} custom={0.16}
-            className="text-[1.1rem] font-light leading-[1.85] text-slate-dark max-w-[540px] mb-10"
+          {/* Sub-copy */}
+          <motion.p
+            variants={heroItem}
+            className="text-[1.05rem] font-light text-white/50 leading-[1.9] max-w-[520px] mb-10"
           >
-            Managing PD model lifecycles and decision architecture for a{' '}
-            <strong className="font-medium text-navy">$3B+ commercial lending portfolio</strong>{' '}
-            at PayPal. Specialized in extracting high-fidelity signals from transaction data
-            and defending risk-appetite shifts in governance forums.
+            PD model governance for a{' '}
+            <span className="text-white/80 font-normal">$3B+ commercial lending portfolio</span>{' '}
+            at PayPal. FFT-based feature engineering. Open Banking integration.
+            Risk decisions that survive a governance forum.
           </motion.p>
 
-          <motion.div variants={fadeUp} custom={0.24} className="flex gap-4 flex-wrap">
+          {/* CTAs */}
+          <motion.div variants={heroItem} className="flex flex-wrap gap-3 mb-20">
             <a
               href={RESUME_PDF}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => trackResumeDownload('hero')}
-              className="inline-flex items-center gap-2 px-8 py-3.5 bg-navy text-paper text-[0.78rem] font-semibold tracking-[0.1em] uppercase rounded-sm hover:bg-gold hover:text-navy hover:-translate-y-0.5 hover:shadow-gold-glow transition-all duration-300"
+              className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full font-semibold text-[0.82rem] tracking-wide
+                bg-white text-[#05080f]
+                hover:bg-white/90 hover:scale-[1.02] hover:shadow-[0_0_40px_rgba(255,255,255,0.15)]
+                transition-all duration-300"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
               </svg>
-              Full Case Studies
+              Case Studies
             </a>
             <button
               onClick={() => document.querySelector('#contact')?.scrollIntoView({ behavior: 'smooth' })}
-              className="inline-flex items-center gap-2 px-8 py-3.5 bg-transparent text-navy border-[1.5px] border-navy text-[0.78rem] font-semibold tracking-[0.1em] uppercase rounded-sm hover:bg-navy hover:text-paper hover:-translate-y-0.5 transition-all duration-300"
+              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full font-semibold text-[0.82rem] tracking-wide
+                bg-white/[0.07] text-white/80 border border-white/[0.12]
+                hover:bg-white/[0.12] hover:text-white hover:scale-[1.02]
+                transition-all duration-300"
             >
-              Technical Discussion →
+              Let&apos;s talk →
             </button>
           </motion.div>
 
-          {/* Proof stats */}
-          <motion.div variants={fadeUp} custom={0.32}
-            className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-18 pt-10 border-t border-black/7"
+          {/* Stats row */}
+          <motion.div
+            variants={heroItem}
+            className="grid grid-cols-2 md:grid-cols-4 gap-px bg-white/[0.06] rounded-2xl overflow-hidden border border-white/[0.06]"
           >
             {[
-              { value: '$3B', unit: '+', label: 'Exposure Governed' },
-              { value: '20', unit: 'bps', label: 'KS Lift via FFT Features' },
-              { value: '3', unit: '', label: 'Fintech Cycles Scaled' },
-              { value: '5', unit: '+', label: 'Years in Risk Systems' },
+              { value: '$3B+',   label: 'Exposure Governed' },
+              { value: '20 bps', label: 'KS Lift via FFT' },
+              { value: '340 bps',label: 'Gini Improvement' },
+              { value: '5+ yrs', label: 'Risk Systems' },
             ].map(s => (
-              <div key={s.label}>
-                <h3 className="font-serif text-[2.2rem] text-navy leading-none">
-                  {s.value}<span className="text-gold">{s.unit}</span>
-                </h3>
-                <p className="text-[0.68rem] tracking-[0.12em] uppercase text-muted mt-1.5 font-medium">{s.label}</p>
+              <div key={s.label} className="bg-[#05080f]/60 backdrop-blur-sm px-7 py-6">
+                <div className="text-[1.7rem] font-bold text-white tracking-tight leading-none mb-1">{s.value}</div>
+                <div className="text-[0.68rem] text-white/35 font-medium tracking-[0.12em] uppercase">{s.label}</div>
               </div>
             ))}
           </motion.div>
+
         </motion.div>
       </div>
     </section>
@@ -414,62 +379,183 @@ function HeroSection() {
 }
 
 // ---------------------------------------------------------------------------
-// SIGNATURE OUTCOMES
+// PHOTO + ABOUT — split layout
+// ---------------------------------------------------------------------------
+function AboutSection() {
+  const ref    = useRef<HTMLElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-80px' });
+
+  return (
+    <motion.section
+      ref={ref}
+      id="about"
+      className="py-28 bg-[#07090f]"
+      initial={{ opacity: 0 }}
+      animate={inView ? { opacity: 1 } : {}}
+      transition={{ duration: 0.6 }}
+    >
+      <div className="max-w-[1200px] mx-auto px-6 md:px-10">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_1.6fr] gap-16 md:gap-24 items-center">
+
+          {/* Photo */}
+          <motion.div
+            initial={{ opacity: 0, x: -40 }}
+            animate={inView ? { opacity: 1, x: 0 } : {}}
+            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+            className="relative"
+          >
+            <div className="relative aspect-[3/4] max-w-[320px] mx-auto md:mx-0 rounded-2xl overflow-hidden">
+              {PHOTO_URL ? (
+                <img
+                  src={PHOTO_URL}
+                  alt="Shashi Shekhar"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                /* Placeholder — replace PHOTO_URL with '/photo.jpg' */
+                <div className="w-full h-full bg-gradient-to-br from-violet-900/40 via-[#0f1220] to-indigo-900/30 flex items-end p-6">
+                  <div>
+                    <div className="text-[0.65rem] font-mono tracking-[0.2em] uppercase text-white/25 mb-1">Add your photo</div>
+                    <div className="text-[0.75rem] text-white/40">Drop <code className="text-violet-400">photo.jpg</code> in <code className="text-violet-400">/public/</code> and set PHOTO_URL</div>
+                  </div>
+                </div>
+              )}
+              {/* Gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-[#07090f]/60 via-transparent to-transparent" />
+            </div>
+
+            {/* Floating credential badge */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={inView ? { opacity: 1, scale: 1 } : {}}
+              transition={{ delay: 0.5, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute -right-4 bottom-8 md:right-[-2rem] bg-[#0d1017] border border-white/[0.1] rounded-xl px-4 py-3 shadow-2xl"
+            >
+              <div className="text-[0.65rem] text-white/35 font-mono tracking-widest uppercase mb-0.5">Currently at</div>
+              <div className="text-sm font-semibold text-white">PayPal</div>
+              <div className="text-[0.7rem] text-violet-400 font-mono mt-0.5">Credit Risk · DS</div>
+            </motion.div>
+          </motion.div>
+
+          {/* Text */}
+          <motion.div
+            initial={{ opacity: 0, x: 40 }}
+            animate={inView ? { opacity: 1, x: 0 } : {}}
+            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+          >
+            <div className="inline-flex items-center gap-2 text-[0.68rem] font-mono tracking-[0.2em] uppercase text-violet-400 mb-5">
+              <span className="w-4 h-px bg-violet-400" /> About
+            </div>
+            <h2 className="text-[clamp(1.8rem,2.8vw,2.5rem)] font-bold leading-[1.2] tracking-[-0.025em] text-white mb-6">
+              I build the systems that<br />decide who gets credit.
+            </h2>
+            <div className="space-y-4 text-[0.93rem] font-light leading-[1.85] text-white/50">
+              <p>
+                Five years across three fintech cycles — from building a $500M loan book from scratch at Jodo,
+                to owning PD model governance across US and UK commercial portfolios at PayPal.
+              </p>
+              <p>
+                My edge: I treat credit risk as an applied signal processing problem.
+                Where others aggregate, I decompose. Where others use rolling means, I use FFT.
+                The result is features that survive governance review because they have a
+                first-principles explanation.
+              </p>
+              <p>
+                I present directly to Credit Risk Strategy Committees. I defend positions in
+                Model Risk Management forums. I ship to production.
+              </p>
+            </div>
+
+            <div className="mt-8 flex flex-wrap gap-2">
+              {['PD Models', 'FFT Feature Eng.', 'Open Banking', 'SHAP / MRM', 'XGBoost / LightGBM', 'PSI / KS Monitoring', 'Scorecard WoE/IV', 'Policy Architecture'].map(tag => (
+                <span key={tag} className="px-3 py-1 rounded-full text-[0.68rem] font-medium tracking-wide border border-white/[0.08] text-white/45 bg-white/[0.03]">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </motion.div>
+
+        </div>
+      </div>
+    </motion.section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// REUSABLE SECTION COMPONENTS
+// ---------------------------------------------------------------------------
+function Section({ children, className = '', id }: { children: React.ReactNode; className?: string; id?: string }) {
+  const ref    = useRef<HTMLElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-80px' });
+  return (
+    <motion.section
+      ref={ref} id={id}
+      className={`py-28 ${className}`}
+      initial={{ opacity: 0, y: 24 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+    >
+      {children}
+    </motion.section>
+  );
+}
+
+function Label({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="inline-flex items-center gap-2 text-[0.68rem] font-mono tracking-[0.2em] uppercase text-violet-400 mb-4">
+      <span className="w-4 h-px bg-violet-400" />{children}
+    </div>
+  );
+}
+
+function H2({ children, light = false }: { children: React.ReactNode; light?: boolean }) {
+  return (
+    <h2 className={`text-[clamp(1.8rem,2.8vw,2.6rem)] font-bold leading-[1.15] tracking-[-0.025em] max-w-[640px] ${light ? 'text-white' : 'text-white'}`}>
+      {children}
+    </h2>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// OUTCOMES SECTION
 // ---------------------------------------------------------------------------
 const outcomes = [
-  {
-    context: 'PayPal · Feature Engineering',
-    metric:  '20 bps',
-    label:   'KS lift via FFT-based periodicity extraction',
-    desc:    'Aggregation (mean/sum) of transaction data masks cashflow volatility. I implemented Fast Fourier Transforms (FFT) to extract dominant cyclicality in daily deposits. RFM metrics normalized by this periodicity allowed for dynamic thresholding, improving signal-to-noise ratios in production PD models.',
-  },
-  {
-    context: 'PayPal · US/UK Portfolio',
-    metric:  '18%',
-    label:   'Reduction in early-stage delinquency',
-    desc:    'Replaced the prescribed 3-month single-horizon default indicator with a multi-horizon (3–12m) risk framework. Demonstrated that single-horizon indicators failed to capture adverse selection in specific merchant segments. Adopted as a production policy layer.',
-  },
-  {
-    context: 'PayPal · UK Open Banking',
-    metric:  'Signal',
-    label:   'Transaction stability features via PSD2',
-    desc:    'Engineered recurring obligation detection and income stability metrics from Open Banking APIs. These supplement bureau signals, particularly for thin-file segments where traditional credit history is an insufficient proxy for liquidity.',
-  },
-  {
-    context: 'Liquiloans · Decisioning',
-    metric:  '340 bps',
-    label:   'Scorecard Gini improvement',
-    desc:    'Owned the full scorecard suite including SHAP-driven explainability for Model Risk Management (MRM) compliance. Led a 9-month development cycle across hiring and sprint planning, ensuring model stability through PSI/CSI monitoring.',
-  },
-  {
-    context: 'Jodo · 0 → 1 Risk',
-    metric:  '$500M',
-    label:   'Origination book from zero infrastructure',
-    desc:    'Built initial credit architecture for education lending with no historical bad labels. Leveraged structural proxies from transaction data and designed the interest-split reconciliation logic for multi-lender syndication.',
-  },
+  { context: 'PayPal · Feature Engineering', metric: '20 bps',  label: 'KS lift via FFT-based periodicity extraction',      desc: 'Implemented Fast Fourier Transforms to extract dominant cashflow cyclicality in daily deposits. RFM metrics normalized by business cycle rather than arbitrary calendar windows — improved signal-to-noise in production PD models.' },
+  { context: 'PayPal · US/UK Portfolio',     metric: '18%',     label: 'Reduction in early-stage delinquency',              desc: 'Replaced 3-month single-horizon default indicator with a multi-horizon (3–12m) framework. Demonstrated adverse selection failure in specific merchant segments. Adopted as production policy layer.' },
+  { context: 'PayPal · UK Open Banking',     metric: 'PSD2',    label: 'Transaction stability via Open Banking',            desc: 'Engineered recurring obligation detection and income stability metrics from Open Banking APIs — supplementing bureau signals for thin-file segments where traditional credit history is insufficient.' },
+  { context: 'Liquiloans · Decisioning',     metric: '340 bps', label: 'Scorecard Gini improvement',                        desc: 'Full scorecard ownership with SHAP-driven explainability for MRM compliance. Led 9-month development cycle including hiring and sprint planning. PSI/CSI stability monitoring throughout.' },
+  { context: 'Jodo · 0 → 1 Risk',            metric: '$500M',   label: 'Origination book from zero infrastructure',         desc: 'Built initial credit architecture for education lending with no historical bad labels. Structural proxies from transaction data; interest-split reconciliation for multi-lender syndication.' },
 ];
 
 function OutcomesSection() {
   return (
-    <Section id="work" className="bg-cream">
-      <div className="max-w-site mx-auto px-8">
-        <SectionLabel>Strategic Outcomes</SectionLabel>
-        <SectionTitle>Impact validated by<br />Credit Committees.</SectionTitle>
-        <SectionDesc>
-          Moving beyond backtesting. These represent portfolio-level shifts adopted post-governance review.
-        </SectionDesc>
+    <Section id="work" className="bg-[#05080f]">
+      <div className="max-w-[1200px] mx-auto px-6 md:px-10">
+        <Label>Strategic Outcomes</Label>
+        <H2>Impact that survived<br />the governance forum.</H2>
+        <p className="text-[0.93rem] font-light text-white/40 max-w-[500px] mt-3 mb-12 leading-[1.8]">
+          Not backtest results. Portfolio-level shifts adopted post-governance review.
+        </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {outcomes.map((o, i) => (
             <motion.div
-              key={o.metric}
-              variants={fadeUp} custom={i * 0.08}
-              className="card-gold-bar bg-white border border-black/7 rounded-sm p-8 relative overflow-hidden hover:-translate-y-1 hover:shadow-card-hover hover:border-gold transition-all duration-300"
+              key={o.metric + i}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ delay: i * 0.07, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="group relative rounded-2xl p-7 bg-white/[0.03] border border-white/[0.07]
+                hover:bg-white/[0.055] hover:border-white/[0.13]
+                transition-all duration-400 overflow-hidden"
             >
-              <div className="text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-gold mb-2">{o.context}</div>
-              <div className="font-serif text-[2.4rem] text-navy leading-none mb-1">{o.metric}</div>
-              <div className="text-[0.85rem] font-medium text-slate-dark mb-3">{o.label}</div>
-              <div className="text-[0.82rem] text-muted leading-[1.75] border-t border-black/7 pt-3">{o.desc}</div>
+              {/* Top glow line on hover */}
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-violet-500/0 via-violet-500/60 to-violet-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+              <div className="text-[0.65rem] font-mono tracking-[0.16em] uppercase text-white/30 mb-3">{o.context}</div>
+              <div className="text-[2.2rem] font-bold text-white leading-none mb-1 tracking-tight">{o.metric}</div>
+              <div className="text-[0.82rem] font-medium text-white/60 mb-4">{o.label}</div>
+              <div className="text-[0.8rem] text-white/30 leading-[1.75] border-t border-white/[0.06] pt-4">{o.desc}</div>
             </motion.div>
           ))}
         </div>
@@ -483,65 +569,68 @@ function OutcomesSection() {
 // ---------------------------------------------------------------------------
 const decisions = [
   {
-    id:      CASE_STUDY_IDS.REJECTED_DEFAULT_INDICATOR,
-    num:     '01',
-    title:   'Rejecting the prescribed default indicator',
-    tags:    ['Strategic Trade-off', 'Model Risk'],
-    body:    'The standard 30-DPD at 3 months was statistically insufficient for the portfolio\'s long-tail exposure. I argued for a multi-window definition. While the model complexity was flagged by MRM, the resulting risk segments were robust enough to be implemented as the primary policy rule engine, reducing early-life delinquency by 18%.',
-    outcome: 'Reasoning →',
-    result:  'Trade-off: Granularity vs. Stability. Decision: Use as Policy, not just Model.',
+    id:     CASE_STUDY_IDS.REJECTED_DEFAULT_INDICATOR,
+    num:    '01',
+    title:  'Rejecting the prescribed default indicator',
+    tags:   ['Strategic Trade-off', 'Model Risk'],
+    body:   'The standard 30-DPD at 3 months was statistically insufficient for the portfolio\'s long-tail exposure. I argued for a multi-window definition. While complexity was flagged by MRM, the resulting risk segments were robust enough to become the primary policy rule engine — reducing early-life delinquency by 18%.',
+    result: 'Trade-off: Granularity vs. Stability. Decision: Policy layer, not model score.',
   },
   {
-    id:      CASE_STUDY_IDS.FFT_RFM_FEATURES,
-    num:     '02',
-    title:   'FFT-based RFM: Signal Processing in Risk',
-    tags:    ['Scipy', 'Feature Engineering'],
-    body:    'Standard merchant deposit counts fail to distinguish between a business with $10k weekly and $40k monthly—fundamentally different credit profiles. By applying Signal Processing (FFT) to transaction series, I extracted the "dominant period," allowing us to normalize risk metrics by business cycle rather than arbitrary calendar windows.',
-    outcome: 'Result →',
-    result:  'Top 5 predictive variable; 20 bps KS increment in production.',
+    id:     CASE_STUDY_IDS.FFT_RFM_FEATURES,
+    num:    '02',
+    title:  'FFT-based RFM: Signal Processing in Credit Risk',
+    tags:   ['Scipy', 'Feature Engineering'],
+    body:   'Standard deposit counts fail to distinguish a business receiving $10k weekly vs $40k monthly — fundamentally different credit profiles. By applying FFT to transaction series I extracted the dominant period, normalising risk metrics by business cycle rather than calendar window.',
+    result: 'Top 5 SHAP feature. 20 bps KS increment in production.',
   },
   {
-    id:      CASE_STUDY_IDS.MULTI_SCORE_GUARDRAILS,
-    num:     '03',
-    title:   'Multi-Score Production Guardrails',
-    tags:    ['Portfolio Monitoring', 'PSI/CSI'],
-    body:    'Identified that blanket PSI (Population Stability Index) thresholds failed on non-uniform joint score distributions. Developed segment-specific breach alerts and Chi-square weighted composites to reduce noise-driven false positives in automated monitoring for the $3B+ portfolio.',
-    outcome: 'Outcome →',
-    result:  'Automated drift detection across high-dimensional risk segments.',
+    id:     CASE_STUDY_IDS.MULTI_SCORE_GUARDRAILS,
+    num:    '03',
+    title:  'Multi-Score Production Guardrails',
+    tags:   ['Portfolio Monitoring', 'PSI/CSI'],
+    body:   'Blanket PSI thresholds fail on non-uniform joint score distributions. I developed segment-specific breach alerts and Chi-square weighted composites — reducing noise-driven false positives in automated monitoring across the $3B+ portfolio.',
+    result: 'Automated drift detection across high-dimensional risk segments.',
   },
 ];
 
 function GovernanceSection() {
   return (
-    <Section id="decisions">
-      <div className="max-w-site mx-auto px-8">
-        <SectionLabel>Governance &amp; Decisions</SectionLabel>
-        <SectionTitle>Defending positions in<br />Risk Governance.</SectionTitle>
-        <SectionDesc>
-          Case studies on technical trade-offs, rejection of prescribed metrics, and second-order thinking.
-        </SectionDesc>
+    <Section id="decisions" className="bg-[#07090f]">
+      <div className="max-w-[1200px] mx-auto px-6 md:px-10">
+        <Label>Governance &amp; Decisions</Label>
+        <H2>Positions defended in<br />Risk Committees.</H2>
+        <p className="text-[0.93rem] font-light text-white/40 max-w-[500px] mt-3 mb-12 leading-[1.8]">
+          Technical trade-offs, rejection of prescribed metrics, second-order thinking.
+        </p>
 
-        <div className="mt-12 divide-y divide-black/7">
+        <div className="space-y-px">
           {decisions.map((d, i) => (
             <motion.div
               key={d.id}
-              variants={fadeUp} custom={i * 0.1}
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ delay: i * 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
               onClick={() => trackCaseStudyClicked(d.id, d.title)}
-              className="grid grid-cols-[60px_1fr] gap-8 py-10 first:border-t first:border-black/7 cursor-pointer group"
+              className="group grid grid-cols-[48px_1fr] md:grid-cols-[80px_1fr] gap-6 md:gap-10 p-7 md:p-9
+                rounded-2xl bg-white/[0.02] border border-white/[0.05]
+                hover:bg-white/[0.045] hover:border-white/[0.1] cursor-pointer
+                transition-all duration-300"
             >
-              <div className="font-serif text-[3rem] text-navy/5 leading-none group-hover:text-navy/10 transition-colors">{d.num}</div>
+              <div className="font-mono text-[2rem] md:text-[3rem] text-white/[0.04] leading-none pt-1 group-hover:text-white/[0.08] transition-colors">{d.num}</div>
               <div>
-                <h3 className="font-serif text-[1.25rem] text-navy mb-2 leading-[1.35] group-hover:text-gold transition-colors duration-300">
+                <h3 className="text-[1.1rem] md:text-[1.2rem] font-semibold text-white/80 mb-3 leading-[1.35] group-hover:text-white transition-colors duration-300">
                   {d.title}
                 </h3>
-                <div className="flex gap-2 mb-3 flex-wrap">
+                <div className="flex gap-2 flex-wrap mb-4">
                   {d.tags.map(t => (
-                    <span key={t} className="text-[0.65rem] font-semibold tracking-[0.1em] uppercase text-gold px-2.5 py-1 bg-gold/8 rounded-sm">{t}</span>
+                    <span key={t} className="text-[0.62rem] font-medium tracking-[0.1em] uppercase text-violet-400/70 px-2.5 py-1 bg-violet-400/[0.07] rounded-full border border-violet-400/[0.15]">{t}</span>
                   ))}
                 </div>
-                <p className="text-[0.88rem] text-slate-dark leading-[1.8] max-w-[620px]">{d.body}</p>
-                <div className="mt-3 font-mono text-[0.78rem] text-navy font-medium">
-                  {d.outcome} <span className="text-gold">{d.result}</span>
+                <p className="text-[0.85rem] text-white/35 leading-[1.8] max-w-[620px]">{d.body}</p>
+                <div className="mt-4 text-[0.78rem] font-mono text-white/25">
+                  → <span className="text-violet-400/80">{d.result}</span>
                 </div>
               </div>
             </motion.div>
@@ -556,48 +645,36 @@ function GovernanceSection() {
 // PHILOSOPHY
 // ---------------------------------------------------------------------------
 const philosophies = [
-  {
-    icon:  '◆',
-    title: 'Aggregation is a lossy transformation',
-    body:  'A simple sum of bank statement data destroys the temporal signal. Credit risk is often a liquidity timing problem; Signal processing (FFT) preserves what rolling averages mask.',
-  },
-  {
-    icon:  '◇',
-    title: 'Bureau data is a floor, not a ceiling',
-    body:  'Traditional scores tell you who defaulted in the past. Transaction data tells you who is approaching a cashflow crunch now. The former identifies bad risk; the latter manages it.',
-  },
-  {
-    icon:  '▲',
-    title: 'Model risk is often an execution gap',
-    body:  'A "perfect" PD model with a flawed interest-accrual or split architecture at the final EMI will consistently fail on reconciliation. Infrastructure is part of the risk model.',
-  },
-  {
-    icon:  '○',
-    title: 'Explainability (SHAP) is for Governance',
-    body:  'Feature importance doesn\'t guarantee fairness, but it ensures auditability. In a $3B+ portfolio, the ability to defend a single decline to a regulator is as critical as the model\'s Gini.',
-  },
+  { title: 'Aggregation is a lossy transformation',  body: 'A simple sum of bank statement data destroys the temporal signal. Credit risk is a liquidity timing problem. FFT preserves what rolling averages mask.' },
+  { title: 'Bureau data is a floor, not a ceiling',  body: 'Traditional scores identify who defaulted in the past. Transaction data identifies who is approaching a cashflow crunch now.' },
+  { title: 'Model risk is often an execution gap',   body: 'A perfect PD model with flawed interest-accrual architecture will fail on reconciliation. Infrastructure is part of the risk model.' },
+  { title: 'Explainability (SHAP) is for governance',body: 'Feature importance doesn\'t guarantee fairness, but ensures auditability. The ability to defend a single decline to a regulator is as critical as the model Gini.' },
 ];
 
 function PhilosophySection() {
   return (
-    <Section id="philosophy" className="bg-navy">
-      <div className="max-w-site mx-auto px-8">
-        <SectionLabel>Risk Philosophy</SectionLabel>
-        <SectionTitle light>Views on Credit Architecture.</SectionTitle>
-        <SectionDesc light>
-          Positions held through production experience—not textbook theory.
-        </SectionDesc>
+    <Section id="philosophy" className="bg-[#05080f]">
+      <div className="max-w-[1200px] mx-auto px-6 md:px-10">
+        <Label>Risk Philosophy</Label>
+        <H2>Views formed in<br />production, not textbooks.</H2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-12">
           {philosophies.map((p, i) => (
             <motion.div
               key={p.title}
-              variants={fadeUp} custom={i * 0.08}
-              className="p-9 border border-paper/8 rounded-sm hover:border-gold hover:bg-paper/3 transition-all duration-300"
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ delay: i * 0.08, duration: 0.6 }}
+              className="p-8 rounded-2xl border border-white/[0.07] bg-white/[0.02]
+                hover:border-violet-500/30 hover:bg-violet-500/[0.03]
+                transition-all duration-400 group"
             >
-              <span className="block text-2xl mb-4 text-gold" aria-hidden="true">{p.icon}</span>
-              <h4 className="font-serif text-[1.08rem] text-paper mb-3 leading-[1.35]">{p.title}</h4>
-              <p className="text-[0.82rem] text-paper/50 leading-[1.8]">{p.body}</p>
+              <div className="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center mb-5 group-hover:bg-violet-500/20 transition-colors">
+                <span className="text-violet-400 text-sm font-bold">{i + 1}</span>
+              </div>
+              <h4 className="text-[1rem] font-semibold text-white/80 mb-3 leading-[1.4]">{p.title}</h4>
+              <p className="text-[0.82rem] text-white/35 leading-[1.8]">{p.body}</p>
             </motion.div>
           ))}
         </div>
@@ -610,103 +687,41 @@ function PhilosophySection() {
 // CAREER TIMELINE
 // ---------------------------------------------------------------------------
 const career = [
-  {
-    period:    '2022 — Present',
-    role:      'Data Scientist — Credit Risk',
-    company:   'PayPal',
-    desc:      'Owning PD model governance for US/UK commercial portfolios. Leading feature engineering shifts using signal processing and Open Banking integration. Presenting risk strategies to CRSC.',
-    highlight: '$3B+ portfolio | US + UK markets',
-  },
-  {
-    period:    '2020 — 2022',
-    role:      'Data Scientist — Risk & Underwriting',
-    company:   'Liquiloans',
-    desc:      'Designed full-stack scorecard suite with champion-challenger frameworks. Led technical team for 9 months through hiring and model development reviews.',
-    highlight: '340 bps Gini improvement',
-  },
-  {
-    period:    '2019 — 2020',
-    role:      'Data Scientist',
-    company:   'Jodo',
-    desc:      '0→1 credit decisioning. Built the initial transaction data pipeline and risk segmentation logic for a $500M loan book.',
-    highlight: '$500M origination book',
-  },
+  { period: '2022 — Present', role: 'Data Scientist — Credit Risk', company: 'PayPal',      badge: '$3B+ · US & UK', desc: 'PD model governance for commercial portfolios. FFT feature engineering. Open Banking PSD2 integration. CRSC presentations.' },
+  { period: '2020 — 2022',    role: 'Data Scientist — Risk',        company: 'Liquiloans',  badge: '340 bps Gini',   desc: 'Full scorecard suite. Champion-challenger frameworks. 9-month dev cycle ownership.' },
+  { period: '2019 — 2020',    role: 'Data Scientist',               company: 'Jodo',        badge: '$500M book',     desc: '0→1 credit decisioning. Transaction data pipeline. Multi-lender syndication logic.' },
 ];
 
 function CareerSection() {
   return (
-    <Section id="career">
-      <div className="max-w-site mx-auto px-8">
-        <SectionLabel>Career Progression</SectionLabel>
-        <SectionTitle>Ownership &amp; Scaling.</SectionTitle>
+    <Section id="career" className="bg-[#07090f]">
+      <div className="max-w-[1200px] mx-auto px-6 md:px-10">
+        <Label>Career</Label>
+        <H2>Ownership across<br />three fintech cycles.</H2>
 
-        <div className="mt-12 relative timeline-rule">
+        <div className="relative mt-14 pl-6 border-l border-white/[0.07]">
           {career.map((c, i) => (
             <motion.div
               key={c.company}
-              variants={fadeUp} custom={i * 0.1}
-              className="grid grid-cols-[48px_1fr] gap-7 py-8 group"
+              initial={{ opacity: 0, x: -16 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ delay: i * 0.12, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              className="relative mb-12 last:mb-0 pl-8 group"
             >
               {/* Timeline dot */}
-              <div className="relative">
-                <div className="w-2.5 h-2.5 bg-paper border-2 border-gold rounded-full mt-1.5 ml-5 relative z-10 group-hover:bg-gold group-hover:shadow-[0_0_0_5px_rgba(184,134,11,0.12)] transition-all duration-300" />
+              <div className="absolute -left-[1.85rem] top-1.5 w-3 h-3 rounded-full bg-[#07090f] border-2 border-violet-500/50 group-hover:border-violet-400 group-hover:shadow-[0_0_12px_rgba(167,139,250,0.4)] transition-all duration-300" />
+
+              <div className="font-mono text-[0.68rem] tracking-[0.16em] uppercase text-white/25 mb-1">{c.period}</div>
+              <div className="text-[1.05rem] font-semibold text-white/80 leading-tight">{c.role}</div>
+              <div className="flex items-center gap-3 mt-1 mb-3">
+                <span className="text-[0.82rem] font-medium text-violet-400">{c.company}</span>
+                <span className="text-[0.65rem] font-mono text-white/20 px-2 py-0.5 bg-white/[0.04] rounded-full border border-white/[0.07]">{c.badge}</span>
               </div>
-              <div>
-                <div className="font-mono text-[0.7rem] text-muted mb-0.5">{c.period}</div>
-                <div className="font-serif text-[1.15rem] text-navy mb-0.5">{c.role}</div>
-                <div className="text-[0.82rem] font-medium text-gold mb-2">{c.company}</div>
-                <p className="text-[0.82rem] text-slate-dark leading-[1.8] max-w-[540px]">{c.desc}</p>
-                <span className="mt-2 inline-block text-[0.75rem] font-medium text-navy px-3 py-1 bg-gold/8 rounded-sm">{c.highlight}</span>
-              </div>
+              <p className="text-[0.82rem] text-white/35 leading-[1.8] max-w-[520px]">{c.desc}</p>
             </motion.div>
           ))}
         </div>
-      </div>
-    </Section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// SKILLS
-// ---------------------------------------------------------------------------
-const skillCategories = [
-  {
-    title: 'Empirical Modelling',
-    skills: ['PD Model Lifecycle (XGBoost/LightGBM)', 'Scorecard WoE / IV Architecture', 'Champion-Challenger Design', 'SHAP / LIME Model Explainability'],
-  },
-  {
-    title: 'Risk Governance',
-    skills: ['PSI / KS / Gini Monitoring', 'CRSC Policy Defense', 'Model Risk Management (MRM)', 'Decision Rule Engines'],
-  },
-  {
-    title: 'Feature Engineering',
-    skills: ['FFT / Signal Processing (scipy)', 'Open Banking / PSD2 Data Ops', 'Dynamic MAD Thresholding', 'SQL / Advanced Pandas Pipeline'],
-  },
-];
-
-function SkillsSection() {
-  return (
-    <Section className="bg-cream">
-      <div className="max-w-site mx-auto px-8">
-        <SectionLabel>Technical Stack</SectionLabel>
-        <SectionTitle>Domain Expertise.</SectionTitle>
-
-        <motion.div
-          variants={fadeUp} custom={0.16}
-          className="grid grid-cols-1 md:grid-cols-3 gap-9 mt-12"
-        >
-          {skillCategories.map(cat => (
-            <div key={cat.title}>
-              <h4 className="text-[0.68rem] font-semibold tracking-[0.15em] uppercase text-gold mb-4 pb-2.5 border-b border-black/7">{cat.title}</h4>
-              {cat.skills.map(s => (
-                <div key={s} className="flex items-center gap-2 py-1.5 text-[0.85rem] text-slate-dark">
-                  <span className="w-1.5 h-1.5 bg-navy rounded-full flex-shrink-0" aria-hidden="true" />
-                  {s}
-                </div>
-              ))}
-            </div>
-          ))}
-        </motion.div>
       </div>
     </Section>
   );
@@ -717,83 +732,77 @@ function SkillsSection() {
 // ---------------------------------------------------------------------------
 function CTASection() {
   return (
-    <section
-      id="contact"
-      className="py-28 text-center bg-gradient-to-b from-cream to-paper"
-    >
-      <div className="max-w-site mx-auto px-8">
+    <section id="contact" className="relative py-32 bg-[#05080f] overflow-hidden">
+      {/* Ambient glow */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="w-[600px] h-[600px] rounded-full bg-violet-600/[0.06] blur-[120px]" />
+      </div>
+
+      <div className="relative z-10 max-w-[700px] mx-auto px-6 md:px-10 text-center">
         <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-60px' }}
-          variants={staggerContainer}
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         >
-          <motion.div variants={fadeUp} custom={0}
-            className="inline-flex items-center gap-2 text-[0.68rem] font-semibold tracking-[0.2em] uppercase text-gold mb-5 justify-center"
-          >
-            Connect
-          </motion.div>
+          <div className="inline-flex items-center gap-2 text-[0.68rem] font-mono tracking-[0.2em] uppercase text-violet-400 mb-6">
+            <span className="w-4 h-px bg-violet-400" /> Connect
+          </div>
 
-          <motion.h2 variants={fadeUp} custom={0.08}
-            className="font-serif text-[clamp(1.9rem,3.5vw,2.8rem)] text-navy mb-3 tracking-[-0.015em]"
-          >
-            Exploring Senior Risk Roles.
-          </motion.h2>
+          <h2 className="text-[clamp(2rem,4vw,3.2rem)] font-bold leading-[1.12] tracking-[-0.025em] text-white mb-5">
+            Let&apos;s build something<br />
+            <GradientText>worth defending.</GradientText>
+          </h2>
 
-          <motion.p variants={fadeUp} custom={0.16}
-            className="text-base font-light text-slate-dark max-w-[480px] mx-auto mb-9 leading-[1.8]"
-          >
-            Open to relocation (UK, EU, Singapore, Canada) for roles at global fintech and banking firms.
-            Let&apos;s discuss credit architecture.
-          </motion.p>
+          <p className="text-[0.95rem] font-light text-white/40 leading-[1.85] mb-10">
+            Senior risk roles at global fintech and banking firms.
+            Relocation-ready for UK, EU, Singapore, or Canada.
+          </p>
 
-          <motion.div variants={fadeUp} custom={0.24} className="flex gap-4 justify-center flex-wrap">
+          <div className="flex flex-wrap gap-3 justify-center mb-10">
             <a
               href={`mailto:${EMAIL}`}
               onClick={trackEmailClicked}
-              className="inline-flex items-center gap-2 px-8 py-3.5 bg-navy text-paper text-[0.78rem] font-semibold tracking-[0.1em] uppercase rounded-sm hover:bg-gold hover:text-navy hover:-translate-y-0.5 hover:shadow-gold-glow transition-all duration-300"
+              className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full font-semibold text-[0.82rem] tracking-wide
+                bg-white text-[#05080f]
+                hover:bg-white/90 hover:scale-[1.02] hover:shadow-[0_0_40px_rgba(255,255,255,0.12)]
+                transition-all duration-300"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                <rect x="2" y="4" width="20" height="16" rx="2"/>
-                <path d="M22 4l-10 8L2 4"/>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4l-10 8L2 4"/>
               </svg>
-              Email Professional Inquiry
+              Email me
             </a>
             <a
               href={CALENDLY_URL}
               target="_blank"
               rel="noopener noreferrer"
               onClick={trackCalendlyClicked}
-              className="inline-flex items-center gap-2 px-8 py-3.5 bg-transparent text-navy border-[1.5px] border-navy text-[0.78rem] font-semibold tracking-[0.1em] uppercase rounded-sm hover:bg-navy hover:text-paper hover:-translate-y-0.5 transition-all duration-300"
+              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full font-semibold text-[0.82rem] tracking-wide
+                bg-white/[0.07] text-white/80 border border-white/[0.12]
+                hover:bg-white/[0.12] hover:text-white
+                transition-all duration-300"
             >
-              Technical Call →
+              Book a call →
             </a>
-          </motion.div>
+          </div>
 
-          <motion.div variants={fadeUp} custom={0.32} className="flex gap-8 justify-center mt-10">
-            <a
-              href={LINKEDIN_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => trackLinkedInClicked('cta')}
-              className="text-[0.72rem] font-medium tracking-[0.1em] uppercase text-muted hover:text-gold transition-colors duration-300"
-            >
+          <div className="flex items-center justify-center gap-8">
+            <a href={LINKEDIN_URL} target="_blank" rel="noopener noreferrer" onClick={() => trackLinkedInClicked('cta')}
+              className="text-[0.72rem] font-medium tracking-[0.12em] uppercase text-white/25 hover:text-violet-400 transition-colors duration-300">
               LinkedIn
             </a>
-            <a
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={trackGitHubClicked}
-              className="text-[0.72rem] font-medium tracking-[0.1em] uppercase text-muted hover:text-gold transition-colors duration-300"
-            >
+            <span className="w-px h-4 bg-white/[0.1]" />
+            <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" onClick={trackGitHubClicked}
+              className="text-[0.72rem] font-medium tracking-[0.12em] uppercase text-white/25 hover:text-violet-400 transition-colors duration-300">
               GitHub
             </a>
-          </motion.div>
-
-          <motion.p variants={fadeUp} custom={0.4} className="mt-6 text-[0.78rem] text-muted">
-            Currently at <span className="text-gold font-medium">PayPal</span> · Available for conversations
-          </motion.p>
+            <span className="w-px h-4 bg-white/[0.1]" />
+            <a href={RESUME_PDF} target="_blank" rel="noopener noreferrer" onClick={() => trackResumeDownload('cta')}
+              className="text-[0.72rem] font-medium tracking-[0.12em] uppercase text-white/25 hover:text-violet-400 transition-colors duration-300">
+              Resume PDF
+            </a>
+          </div>
         </motion.div>
       </div>
     </section>
@@ -801,32 +810,16 @@ function CTASection() {
 }
 
 // ---------------------------------------------------------------------------
-// JSON-LD — Person schema for Google Knowledge Graph
+// JSON-LD — Person schema
 // ---------------------------------------------------------------------------
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Person',
   name: 'Shashi Shekhar',
   jobTitle: 'Data Scientist — Credit Risk',
-  worksFor: {
-    '@type': 'Organization',
-    name: 'PayPal',
-    url: 'https://paypal.com',
-  },
-  description:
-    'Credit Risk Data Scientist specializing in PD model governance, FFT-based feature engineering, and Open Banking integration for commercial lending portfolios exceeding $3B.',
-  knowsAbout: [
-    'Probability of Default Models',
-    'FFT Feature Engineering',
-    'Open Banking PSD2',
-    'Risk Governance',
-    'XGBoost LightGBM',
-    'SHAP Explainability',
-    'PSI KS Monitoring',
-    'Scorecard WoE IV Architecture',
-    'Credit Risk Data Science',
-    'Fintech',
-  ],
+  worksFor: { '@type': 'Organization', name: 'PayPal', url: 'https://paypal.com' },
+  description: 'Credit Risk Data Scientist specializing in PD model governance, FFT-based feature engineering, and Open Banking integration for commercial lending portfolios.',
+  knowsAbout: ['Probability of Default Models', 'FFT Feature Engineering', 'Open Banking PSD2', 'Credit Risk Governance', 'XGBoost LightGBM', 'SHAP Explainability', 'PSI KS Monitoring', 'Scorecard WoE IV Architecture', 'Credit Risk Data Science', 'Fintech Risk Systems'],
   url: SITE_URL,
   sameAs: [LINKEDIN_URL, GITHUB_URL],
   email: EMAIL,
@@ -838,48 +831,61 @@ const jsonLd = {
 export default function Page() {
   return (
     <>
-      {/* JSON-LD structured data for Google Knowledge Graph */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      {/* Gradient text animation — injected once globally */}
+      <style>{`
+        @keyframes gradientShift {
+          0%   { background-position: 0% 50% }
+          50%  { background-position: 100% 50% }
+          100% { background-position: 0% 50% }
+        }
+        .gradient-text {
+          background: linear-gradient(
+            270deg,
+            #a78bfa, #818cf8, #38bdf8, #34d399, #f472b6, #a78bfa
+          );
+          background-size: 400% 400%;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          animation: gradientShift 6s ease infinite;
+        }
+      `}</style>
 
-      {/* OG / Twitter / SEO meta — injected into <head> via Next.js */}
-      {/* (Primary metadata is in layout.tsx; additional page-level tags below) */}
-      <title>Shashi Shekhar — Credit Risk Data Scientist | PD Models, FFT Feature Engineering</title>
-      <meta
-        name="description"
-        content="Credit Risk leader focused on PD model governance, signal processing in feature engineering, and portfolio decisioning. Managed risk for $3B+ commercial lending portfolio at PayPal."
-      />
-      <meta name="keywords" content="Shashi Shekhar, Credit Risk Data Scientist, PD Models, FFT Feature Engineering, Open Banking, PayPal Risk, Scorecard, SHAP, Probability of Default" />
+      {/* SEO meta */}
+      <title>Shashi Shekhar — Credit Risk Data Scientist | PD Models · FFT · Open Banking</title>
+      <meta name="description" content="Credit Risk Data Scientist at PayPal. PD model governance, FFT-based feature engineering, Open Banking integration. $3B+ commercial lending portfolio." />
+      <meta name="keywords" content="Shashi Shekhar, Credit Risk Data Scientist, PD Models, FFT Feature Engineering, Open Banking, PayPal Risk, Scorecard, SHAP, Probability of Default, Shashi Shekhar PayPal" />
       <link rel="canonical" href={SITE_URL} />
       <meta property="og:type" content="website" />
       <meta property="og:url" content={SITE_URL} />
       <meta property="og:title" content="Shashi Shekhar — Credit Risk Data Scientist" />
-      <meta property="og:description" content="Credit Risk leader specializing in PD model governance, FFT-based signal processing, and $3B+ portfolio decisioning." />
+      <meta property="og:description" content="PD model governance, FFT feature engineering, Open Banking. $3B+ portfolio at PayPal." />
       <meta property="og:image" content={`${SITE_URL}/og-image.png`} />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content="Shashi Shekhar — Credit Risk Data Scientist" />
-      <meta name="twitter:description" content="PD model governance, FFT feature engineering, Open Banking integration. $3B+ portfolio at PayPal." />
+      <meta name="twitter:description" content="PD model governance, FFT feature engineering, Open Banking. $3B+ portfolio at PayPal." />
       <meta name="twitter:image" content={`${SITE_URL}/og-image.png`} />
 
+      {/* JSON-LD */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+
+      <CursorSpotlight />
       <Nav />
       <main>
         <HeroSection />
+        <AboutSection />
         <OutcomesSection />
         <GovernanceSection />
         <PhilosophySection />
         <CareerSection />
-        <SkillsSection />
         <CTASection />
       </main>
-      <footer className="py-8 border-t border-black/7 text-center">
-        <div className="max-w-site mx-auto px-8">
-          <p className="text-[0.72rem] text-muted tracking-[0.05em]">
-            © 2026 Shashi Shekhar · Risk Architecture &amp; Decision Systems
-          </p>
+      <footer className="py-8 border-t border-white/[0.05] bg-[#05080f]">
+        <div className="max-w-[1200px] mx-auto px-6 md:px-10 flex flex-col md:flex-row items-center justify-between gap-3">
+          <p className="text-[0.7rem] text-white/20 font-mono tracking-[0.08em]">© 2026 Shashi Shekhar</p>
+          <p className="text-[0.7rem] text-white/15 font-mono tracking-[0.08em]">Risk Architecture & Decision Systems</p>
         </div>
       </footer>
     </>

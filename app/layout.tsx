@@ -31,7 +31,7 @@ const jetbrains = JetBrains_Mono({
 // --- Site-wide metadata defaults ---
 // Page-level metadata in page.tsx will override these.
 export const metadata: Metadata = {
-  metadataBase: new URL('https://shashishekhar.dev'),
+  metadataBase: new URL('https://risk-portfolio.vercel.app'),
   robots: {
     index: true,
     follow: true,
@@ -64,7 +64,7 @@ export default function RootLayout({
           content="default-src 'self'; script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://vitals.vercel-insights.com https://va.vercel-scripts.com; img-src 'self' data:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self';"
         />
       </head>
-      <body className="font-sans bg-paper text-ink antialiased">
+      <body className="font-sans bg-[#05080f] text-white antialiased">
         {children}
         {/*
           Vercel Web Analytics — injects the tracking script.

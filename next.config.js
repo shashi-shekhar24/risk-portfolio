@@ -16,8 +16,8 @@ const CSP = [
   "font-src 'self' https://fonts.gstatic.com",
   // Vercel Analytics beacon + Web Vitals endpoint
   "connect-src 'self' https://vitals.vercel-insights.com https://va.vercel-scripts.com",
-  // Self-hosted images, OG image, data URIs for canvas
-  "img-src 'self' data:",
+  // Self-hosted images, OG image, data URIs and blob for canvas
+  "img-src 'self' data: blob:",
   // Prevent clickjacking
   "frame-ancestors 'none'",
   // Block all plugin/embed objects
