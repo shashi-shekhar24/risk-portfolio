@@ -4,87 +4,73 @@
 
 @layer base {
   :root {
-    --ink:        #0a0f1a;
-    --paper:      #f7f5f0;
-    --cream:      #eee9df;
-    --navy:       #0f1b2d;
-    --slate:      #3d405b;
-    --gold:       #b8860b;
-    --gold-light: rgba(184, 134, 11, 0.08);
-    --accent:     #1b6ca8;
-    --muted:      #7a7a7a;
-    --border:     rgba(15, 27, 45, 0.07);
+    --bg:        #0B0F1A;
+    --surface-1: #111827;
+    --surface-2: #1a2035;
+    --gold:      #C9A84C;
+    --gold-dim:  rgba(201,168,76,0.12);
+    --border:    rgba(255,255,255,0.06);
+    --border-hover: rgba(255,255,255,0.13);
+    --text-1:    #FFFFFF;
+    --text-2:    rgba(255,255,255,0.55);
+    --text-3:    rgba(255,255,255,0.28);
   }
 
   html {
     scroll-behavior: smooth;
     font-size: 16px;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
-    background: var(--paper);
-    color: var(--ink);
-    overflow-x: hidden;
+    background: var(--bg);
+    color: var(--text-1);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    line-height: 1.7;
+    overflow-x: hidden;
   }
 
   ::selection {
-    background: var(--navy);
-    color: var(--paper);
+    background: rgba(201,168,76,0.25);
+    color: #fff;
   }
 
-  /* Smooth focus rings for accessibility */
   *:focus-visible {
-    outline: 2px solid var(--gold);
+    outline: 1.5px solid var(--gold);
     outline-offset: 3px;
-    border-radius: 2px;
   }
 }
 
 @layer utilities {
-  /* Timeline vertical rule */
-  .timeline-rule::before {
+  /* Thin horizontal rule — used between sections */
+  .rule {
+    border: none;
+    border-top: 1px solid var(--border);
+  }
+
+  /* The vertical timeline line */
+  .timeline-line::before {
     content: '';
     position: absolute;
-    left: 24px;
+    left: 0;
     top: 0;
     bottom: 0;
     width: 1px;
     background: var(--border);
   }
 
-  /* Gold gradient top bar on cards */
-  .card-gold-bar::before {
+  /* Gold top-border accent on cards (only visible on hover) */
+  .card-accent::before {
     content: '';
     position: absolute;
+    inset-x: 0;
     top: 0;
-    left: 0;
-    width: 100%;
-    height: 2.5px;
-    background: linear-gradient(90deg, var(--gold), var(--navy));
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
     opacity: 0;
-    transition: opacity 0.4s;
+    transition: opacity 0.4s ease;
   }
-
-  .card-gold-bar:hover::before {
+  .card-accent:hover::before {
     opacity: 1;
-  }
-
-  /* Underline animation for nav links */
-  .nav-underline::after {
-    content: '';
-    position: absolute;
-    bottom: -4px;
-    left: 0;
-    width: 0;
-    height: 1.5px;
-    background: var(--gold);
-    transition: width 0.3s;
-  }
-
-  .nav-underline:hover::after {
-    width: 100%;
   }
 }

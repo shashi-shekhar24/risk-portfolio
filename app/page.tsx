@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { motion, useInView, useMotionValue, useSpring } from 'framer-motion';
+import { motion, useInView } from 'framer-motion';
 import {
   trackResumeDownload,
   trackCaseStudyClicked,
@@ -12,464 +12,364 @@ import {
   CASE_STUDY_IDS,
 } from '@/utils/analytics';
 
-// ---------------------------------------------------------------------------
-// CONSTANTS — fill before deploy
-// ---------------------------------------------------------------------------
+// ─── Replace these before deploying ────────────────────────────────────────
 const SITE_URL     = 'https://risk-portfolio.vercel.app';
 const RESUME_PDF   = '/resume-shashi-shekhar.pdf';
 const CALENDLY_URL = 'YOUR_CALENDLY_LINK';
 const LINKEDIN_URL = 'https://linkedin.com/in/YOUR_LINKEDIN_SLUG';
 const GITHUB_URL   = 'https://github.com/YOUR_GITHUB_USERNAME';
 const EMAIL        = 'shashishekhar.ds@gmail.com';
-// Set to '/photo.jpg' once you drop your photo in /public/
-const PHOTO_URL    = null as string | null;
+// Drop photo.jpg in /public/ and change null → '/photo.jpg'
+const PHOTO_URL: string | null = null;
 
-// ---------------------------------------------------------------------------
-// STRIPE-STYLE ANIMATED GRADIENT HERO — the centrepiece
-// Renders a WebGL-like smooth flowing gradient using Canvas2D + requestAnimationFrame.
-// The gradient colours sweep across the headline text via CSS mix-blend-mode,
-// exactly replicating the Stripe "colour-shifting text" effect.
-// ---------------------------------------------------------------------------
-function GradientCanvas() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+// ─── Motion preset ──────────────────────────────────────────────────────────
+// One animation used consistently across the entire page.
+// Opacity + 14px vertical rise, spring easing, 0.7s.
+// Nothing else moves.
+const rise = (delay = 0) => ({
+  initial:   { opacity: 0, y: 14 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport:  { once: true, margin: '-60px' },
+  transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1], delay },
+});
+
+// ─── Subtle noise texture overlay on the hero ───────────────────────────────
+// A very faint animated grain. Visible only on close inspection.
+// No colours, no distracting patterns — just surface texture.
+function NoiseCanvas() {
+  const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
+    const canvas = ref.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
     let rafId: number;
-    let w = 0, h = 0;
+    const SIZE = 200;
+    canvas.width  = SIZE;
+    canvas.height = SIZE;
 
-    function resize() {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      w = canvas!.parentElement!.clientWidth;
-      h = canvas!.parentElement!.clientHeight;
-      canvas!.width  = w * dpr;
-      canvas!.height = h * dpr;
-      canvas!.style.width  = `${w}px`;
-      canvas!.style.height = `${h}px`;
-      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
+    function drawNoise() {
+      const img = ctx!.createImageData(SIZE, SIZE);
+      for (let i = 0; i < img.data.length; i += 4) {
+        const v = Math.random() * 255;
+        img.data[i]     = v;
+        img.data[i + 1] = v;
+        img.data[i + 2] = v;
+        img.data[i + 3] = 12; // very transparent — barely visible
+      }
+      ctx!.putImageData(img, 0, 0);
+      rafId = requestAnimationFrame(drawNoise);
     }
 
-    // Flowing orb state — each orb is a large radial gradient blob that drifts
-    const orbs = [
-      { x: 0.15, y: 0.3,  r: 0.55, speed: 0.00018, phase: 0,    col: [99,  102, 241] },  // indigo
-      { x: 0.75, y: 0.2,  r: 0.50, speed: 0.00023, phase: 1.6,  col: [168, 85,  247] },  // purple
-      { x: 0.85, y: 0.75, r: 0.45, speed: 0.00019, phase: 3.1,  col: [236, 72,  153] },  // pink
-      { x: 0.35, y: 0.8,  r: 0.42, speed: 0.00021, phase: 4.7,  col: [59,  130, 246] },  // blue
-      { x: 0.6,  y: 0.5,  r: 0.38, speed: 0.00025, phase: 2.3,  col: [16,  185, 129] },  // emerald
-    ];
-
-    function draw(ts: number) {
-      ctx!.clearRect(0, 0, w, h);
-
-      // Dark background
-      ctx!.fillStyle = '#05080f';
-      ctx!.fillRect(0, 0, w, h);
-
-      // Draw each orb
-      orbs.forEach(orb => {
-        const t = ts * orb.speed + orb.phase;
-        // Drift in a lemniscate-like path
-        const cx = (orb.x + Math.sin(t) * 0.22) * w;
-        const cy = (orb.y + Math.cos(t * 1.3) * 0.18) * h;
-        const radius = orb.r * Math.max(w, h);
-
-        const grad = ctx!.createRadialGradient(cx, cy, 0, cx, cy, radius);
-        grad.addColorStop(0,   `rgba(${orb.col[0]},${orb.col[1]},${orb.col[2]},0.55)`);
-        grad.addColorStop(0.4, `rgba(${orb.col[0]},${orb.col[1]},${orb.col[2]},0.18)`);
-        grad.addColorStop(1,   `rgba(${orb.col[0]},${orb.col[1]},${orb.col[2]},0)`);
-
-        ctx!.globalCompositeOperation = 'screen';
-        ctx!.fillStyle = grad;
-        ctx!.beginPath();
-        ctx!.arc(cx, cy, radius, 0, Math.PI * 2);
-        ctx!.fill();
-      });
-
-      // Noise grain overlay for depth — very subtle
-      ctx!.globalCompositeOperation = 'source-over';
-
-      rafId = requestAnimationFrame(draw);
-    }
-
-    resize();
-    window.addEventListener('resize', resize);
-    rafId = requestAnimationFrame(draw);
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      window.removeEventListener('resize', resize);
-    };
+    drawNoise();
+    return () => cancelAnimationFrame(rafId);
   }, []);
 
   return (
     <canvas
-      ref={canvasRef}
-      className="absolute inset-0 w-full h-full"
+      ref={ref}
       aria-hidden="true"
+      className="pointer-events-none absolute inset-0 w-full h-full opacity-40"
+      style={{ imageRendering: 'pixelated' }}
     />
   );
 }
 
-// ---------------------------------------------------------------------------
-// ANIMATED GRADIENT TEXT — headline words cycle through gradient colours
-// Uses SVG linearGradient + CSS animation for the colour-shift effect.
-// ---------------------------------------------------------------------------
-function GradientText({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return (
-    <span className={`gradient-text ${className}`}>
-      {children}
-    </span>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// CURSOR SPOTLIGHT — subtle glow that follows the mouse
-// ---------------------------------------------------------------------------
-function CursorSpotlight() {
-  const spotRef = useRef<HTMLDivElement>(null);
-  const mx = useMotionValue(-400);
-  const my = useMotionValue(-400);
-  const sx = useSpring(mx, { stiffness: 120, damping: 20 });
-  const sy = useSpring(my, { stiffness: 120, damping: 20 });
-
-  useEffect(() => {
-    const move = (e: MouseEvent) => { mx.set(e.clientX); my.set(e.clientY); };
-    window.addEventListener('mousemove', move);
-    return () => window.removeEventListener('mousemove', move);
-  }, [mx, my]);
-
-  return (
-    <motion.div
-      ref={spotRef}
-      className="pointer-events-none fixed inset-0 z-30 hidden md:block"
-      style={{
-        background: 'none',
-      }}
-    >
-      <motion.div
-        className="absolute w-[600px] h-[600px] rounded-full"
-        style={{
-          x: sx,
-          y: sy,
-          translateX: '-50%',
-          translateY: '-50%',
-          background: 'radial-gradient(circle, rgba(168,85,247,0.07) 0%, transparent 70%)',
-        }}
-      />
-    </motion.div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// NAV
-// ---------------------------------------------------------------------------
+// ─── Navigation ─────────────────────────────────────────────────────────────
 function Nav() {
   const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [open, setOpen]         = useState(false);
 
   useEffect(() => {
-    const h = () => setScrolled(window.scrollY > 40);
-    window.addEventListener('scroll', h, { passive: true });
-    return () => window.removeEventListener('scroll', h);
+    const fn = () => setScrolled(window.scrollY > 48);
+    window.addEventListener('scroll', fn, { passive: true });
+    return () => window.removeEventListener('scroll', fn);
   }, []);
 
-  const scrollTo = useCallback((id: string) => {
+  const go = useCallback((id: string) => {
     document.querySelector(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    setMenuOpen(false);
+    setOpen(false);
   }, []);
 
   const links = [
-    { label: 'Work',       href: '#work' },
-    { label: 'Governance', href: '#decisions' },
-    { label: 'Philosophy', href: '#philosophy' },
-    { label: 'Career',     href: '#career' },
-    { label: 'Contact',    href: '#contact' },
-  ];
+    ['Work',       '#work'],
+    ['Governance', '#decisions'],
+    ['Thinking',   '#philosophy'],
+    ['Career',     '#career'],
+    ['Contact',    '#contact'],
+  ] as const;
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-      scrolled
-        ? 'py-3 bg-[rgba(5,8,15,0.85)] backdrop-blur-2xl border-b border-white/[0.06] shadow-[0_1px_0_rgba(255,255,255,0.04)]'
-        : 'py-5 bg-transparent'
-    }`}>
-      <div className="max-w-[1200px] mx-auto px-6 md:px-10 flex items-center justify-between">
-        {/* Logo */}
-        <div className="font-mono text-sm font-medium text-white/90 tracking-widest uppercase">
-          SS<span className="text-violet-400">.</span>
-        </div>
+    <nav
+      aria-label="Primary"
+      className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ${
+        scrolled
+          ? 'py-3.5 bg-[rgba(11,15,26,0.92)] backdrop-blur-xl border-b border-white/[0.05]'
+          : 'py-5 bg-transparent'
+      }`}
+    >
+      <div className="max-w-site mx-auto px-6 md:px-10 flex items-center justify-between">
+        {/* Wordmark */}
+        <span className="font-mono text-[0.72rem] font-medium tracking-[0.22em] uppercase text-white/70 select-none">
+          Shashi Shekhar
+        </span>
 
-        {/* Desktop links */}
-        <ul className="hidden md:flex items-center gap-8">
-          {links.map(l => (
-            <li key={l.href}>
+        {/* Desktop */}
+        <ul className="hidden md:flex items-center gap-10" role="list">
+          {links.map(([label, href]) => (
+            <li key={href}>
               <button
-                onClick={() => scrollTo(l.href)}
-                className="text-[0.72rem] font-medium tracking-[0.12em] uppercase text-white/45 hover:text-white/90 transition-colors duration-300"
+                onClick={() => go(href)}
+                className="text-[0.72rem] font-medium tracking-[0.1em] uppercase text-white/38 hover:text-white/80 transition-colors duration-300"
               >
-                {l.label}
+                {label}
               </button>
             </li>
           ))}
         </ul>
 
-        {/* CTA */}
-        <a
-          href={RESUME_PDF}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => trackResumeDownload('nav')}
-          className="hidden md:inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-[0.72rem] font-semibold tracking-[0.08em] uppercase
-            bg-white/[0.08] text-white/80 border border-white/[0.12]
-            hover:bg-white/[0.14] hover:text-white hover:border-white/25
-            transition-all duration-300"
-        >
-          Resume ↓
-        </a>
+        <div className="hidden md:flex items-center gap-4">
+          <a
+            href={RESUME_PDF}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => trackResumeDownload('nav')}
+            className="text-[0.72rem] font-semibold tracking-[0.1em] uppercase text-gold border border-gold/40 px-4 py-2 rounded hover:bg-gold/8 transition-colors duration-300"
+          >
+            Resume
+          </a>
+        </div>
 
-        {/* Mobile hamburger */}
+        {/* Mobile toggle */}
         <button
-          className="md:hidden p-2 text-white/70"
-          onClick={() => setMenuOpen(o => !o)}
-          aria-label="Menu"
+          aria-label={open ? 'Close menu' : 'Open menu'}
+          aria-expanded={open}
+          className="md:hidden text-white/55 hover:text-white/90 transition-colors p-1"
+          onClick={() => setOpen(o => !o)}
         >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            {menuOpen ? (
-              <path d="M4 4l12 12M16 4L4 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-            ) : (
-              <>
-                <line x1="3" y1="6" x2="17" y2="6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                <line x1="3" y1="10" x2="17" y2="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                <line x1="3" y1="14" x2="17" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              </>
-            )}
+          <svg width="22" height="16" viewBox="0 0 22 16" fill="none" aria-hidden="true">
+            <rect x="0" y="0"  width={open ? '22' : '22'} height="1.5" rx="1" fill="currentColor"
+              className={`transition-all duration-300 origin-center ${open ? 'translate-y-[7px] rotate-45' : ''}`}
+              style={{ transformBox: 'fill-box' }}
+            />
+            <rect x="0" y="7"  width="16" height="1.5" rx="1" fill="currentColor"
+              className={`transition-all duration-300 ${open ? 'opacity-0' : ''}`}
+            />
+            <rect x="0" y="14" width="22" height="1.5" rx="1" fill="currentColor"
+              className={`transition-all duration-300 origin-center ${open ? '-translate-y-[7px] -rotate-45' : ''}`}
+              style={{ transformBox: 'fill-box' }}
+            />
           </svg>
         </button>
       </div>
 
-      {menuOpen && (
+      {/* Mobile drawer */}
+      {open && (
         <motion.div
-          initial={{ opacity: 0, y: -8 }}
+          initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
-          className="md:hidden absolute top-full left-0 right-0 bg-[#05080f]/95 backdrop-blur-2xl border-b border-white/[0.06] px-6 py-6 flex flex-col gap-5"
+          transition={{ duration: 0.25 }}
+          className="md:hidden absolute inset-x-0 top-full bg-[#0d1120] border-b border-white/[0.06] px-6 py-7 flex flex-col gap-6"
         >
-          {links.map(l => (
+          {links.map(([label, href]) => (
             <button
-              key={l.href}
-              onClick={() => scrollTo(l.href)}
-              className="text-left text-sm font-medium tracking-[0.12em] uppercase text-white/60 hover:text-white"
+              key={href}
+              onClick={() => go(href)}
+              className="text-left text-[0.8rem] font-medium tracking-[0.1em] uppercase text-white/50 hover:text-white"
             >
-              {l.label}
+              {label}
             </button>
           ))}
+          <a href={RESUME_PDF} target="_blank" rel="noopener noreferrer"
+            onClick={() => trackResumeDownload('nav')}
+            className="self-start text-[0.72rem] font-semibold tracking-[0.1em] uppercase text-gold border border-gold/40 px-4 py-2 rounded">
+            Resume
+          </a>
         </motion.div>
       )}
     </nav>
   );
 }
 
-// ---------------------------------------------------------------------------
-// HERO
-// ---------------------------------------------------------------------------
-const heroVariants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.1, delayChildren: 0.15 } },
-};
-const heroItem = {
-  hidden:  { opacity: 0, y: 32, filter: 'blur(8px)' },
-  visible: { opacity: 1, y: 0,  filter: 'blur(0px)', transition: { duration: 0.9, ease: [0.16, 1, 0.3, 1] } },
-};
-
-function HeroSection() {
+// ─── Hero ────────────────────────────────────────────────────────────────────
+function Hero() {
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden bg-[#05080f]">
-      {/* Full-bleed gradient canvas */}
-      <div className="absolute inset-0 z-0">
-        <GradientCanvas />
-      </div>
+    <section
+      aria-label="Introduction"
+      className="relative min-h-screen flex flex-col justify-center overflow-hidden bg-bg"
+    >
+      {/* Grain */}
+      <NoiseCanvas />
 
-      {/* Soft vignette at bottom so content reads cleanly */}
-      <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#05080f] to-transparent z-[1]" />
+      {/* Very subtle radial glow — not a disco orb, just ambient warmth */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-32 -right-48 w-[700px] h-[700px] rounded-full opacity-[0.04]"
+        style={{ background: 'radial-gradient(circle, #C9A84C 0%, transparent 70%)' }}
+      />
 
-      <div className="relative z-10 w-full max-w-[1200px] mx-auto px-6 md:px-10 pt-32 pb-24">
-        <motion.div initial="hidden" animate="visible" variants={heroVariants}>
+      <div className="relative z-10 max-w-site mx-auto w-full px-6 md:px-10 pt-36 pb-24 md:pb-32">
 
-          {/* Eyebrow badge */}
-          <motion.div variants={heroItem} className="mb-8">
-            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/[0.12] bg-white/[0.05] backdrop-blur-sm text-[0.68rem] font-mono font-medium tracking-[0.18em] uppercase text-white/55">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Open to Senior Risk Roles · UK · EU · Singapore · Canada
-            </span>
-          </motion.div>
-
-          {/* Main headline with gradient colour-shift */}
-          <motion.h1
-            variants={heroItem}
-            className="text-[clamp(2.8rem,6vw,5.2rem)] font-bold leading-[1.04] tracking-[-0.03em] text-white max-w-[900px] mb-7"
-          >
-            Where{' '}
-            <GradientText>signal processing</GradientText>
-            {' '}meets<br className="hidden sm:block" />{' '}
-            <GradientText>credit risk</GradientText>{' '}architecture.
-          </motion.h1>
-
-          {/* Sub-copy */}
-          <motion.p
-            variants={heroItem}
-            className="text-[1.05rem] font-light text-white/50 leading-[1.9] max-w-[520px] mb-10"
-          >
-            PD model governance for a{' '}
-            <span className="text-white/80 font-normal">$3B+ commercial lending portfolio</span>{' '}
-            at PayPal. FFT-based feature engineering. Open Banking integration.
-            Risk decisions that survive a governance forum.
-          </motion.p>
-
-          {/* CTAs */}
-          <motion.div variants={heroItem} className="flex flex-wrap gap-3 mb-20">
-            <a
-              href={RESUME_PDF}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => trackResumeDownload('hero')}
-              className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full font-semibold text-[0.82rem] tracking-wide
-                bg-white text-[#05080f]
-                hover:bg-white/90 hover:scale-[1.02] hover:shadow-[0_0_40px_rgba(255,255,255,0.15)]
-                transition-all duration-300"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-              Case Studies
-            </a>
-            <button
-              onClick={() => document.querySelector('#contact')?.scrollIntoView({ behavior: 'smooth' })}
-              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full font-semibold text-[0.82rem] tracking-wide
-                bg-white/[0.07] text-white/80 border border-white/[0.12]
-                hover:bg-white/[0.12] hover:text-white hover:scale-[1.02]
-                transition-all duration-300"
-            >
-              Let&apos;s talk →
-            </button>
-          </motion.div>
-
-          {/* Stats row */}
-          <motion.div
-            variants={heroItem}
-            className="grid grid-cols-2 md:grid-cols-4 gap-px bg-white/[0.06] rounded-2xl overflow-hidden border border-white/[0.06]"
-          >
-            {[
-              { value: '$3B+',   label: 'Exposure Governed' },
-              { value: '20 bps', label: 'KS Lift via FFT' },
-              { value: '340 bps',label: 'Gini Improvement' },
-              { value: '5+ yrs', label: 'Risk Systems' },
-            ].map(s => (
-              <div key={s.label} className="bg-[#05080f]/60 backdrop-blur-sm px-7 py-6">
-                <div className="text-[1.7rem] font-bold text-white tracking-tight leading-none mb-1">{s.value}</div>
-                <div className="text-[0.68rem] text-white/35 font-medium tracking-[0.12em] uppercase">{s.label}</div>
-              </div>
-            ))}
-          </motion.div>
-
+        {/* Status line */}
+        <motion.div {...rise(0)} className="flex items-center gap-3 mb-10">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+          </span>
+          <span className="font-mono text-[0.68rem] tracking-[0.2em] uppercase text-white/35">
+            Open to Senior Risk &amp; Director roles — UK · EU · Singapore · Canada
+          </span>
         </motion.div>
+
+        {/* Main headline — typography carries the premium feel */}
+        <motion.h1
+          {...rise(0.08)}
+          className="text-[clamp(2.6rem,5.5vw,5rem)] font-semibold leading-[1.06] tracking-[-0.03em] text-white max-w-[860px] mb-7"
+        >
+          Credit risk is a signal<br className="hidden sm:block" /> processing problem.
+        </motion.h1>
+
+        {/* Sub-headline */}
+        <motion.p {...rise(0.16)} className="text-[1.05rem] font-light leading-[1.85] text-white/48 max-w-[540px] mb-12">
+          Five years governing PD models across a{' '}
+          <span className="text-white/75 font-normal">$3B+ commercial lending portfolio</span>{' '}
+          at PayPal. I extract signals others aggregate away —
+          then defend the architecture in governance forums.
+        </motion.p>
+
+        {/* CTAs — restrained */}
+        <motion.div {...rise(0.24)} className="flex flex-wrap items-center gap-4 mb-24">
+          <a
+            href="#work"
+            onClick={e => { e.preventDefault(); document.querySelector('#work')?.scrollIntoView({ behavior: 'smooth' }); }}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded text-[0.8rem] font-semibold tracking-[0.06em] uppercase bg-white text-bg hover:bg-white/90 transition-colors duration-300"
+          >
+            View Work
+          </a>
+          <a
+            href={`mailto:${EMAIL}`}
+            onClick={trackEmailClicked}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded text-[0.8rem] font-semibold tracking-[0.06em] uppercase text-white/60 border border-white/[0.12] hover:text-white hover:border-white/25 transition-all duration-300"
+          >
+            Get in touch
+          </a>
+        </motion.div>
+
+        {/* Metrics bar — flush bottom of hero */}
+        <motion.div
+          {...rise(0.32)}
+          className="grid grid-cols-2 md:grid-cols-4 gap-px overflow-hidden rounded-lg border border-white/[0.07] bg-white/[0.07]"
+        >
+          {[
+            { n: '$3B+',    d: 'Exposure governed'       },
+            { n: '20 bps',  d: 'KS lift via FFT'          },
+            { n: '340 bps', d: 'Gini improvement'          },
+            { n: '5+ yrs',  d: 'In production risk systems' },
+          ].map(m => (
+            <div key={m.d} className="bg-bg px-6 py-5">
+              <div className="text-[1.55rem] font-semibold text-white tracking-tight leading-none mb-1.5">{m.n}</div>
+              <div className="text-[0.67rem] font-medium tracking-[0.14em] uppercase text-white/30">{m.d}</div>
+            </div>
+          ))}
+        </motion.div>
+
       </div>
     </section>
   );
 }
 
-// ---------------------------------------------------------------------------
-// PHOTO + ABOUT — split layout
-// ---------------------------------------------------------------------------
-function AboutSection() {
+// ─── About + Photo ──────────────────────────────────────────────────────────
+function About() {
   const ref    = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, margin: '-80px' });
 
   return (
-    <motion.section
-      ref={ref}
-      id="about"
-      className="py-28 bg-[#07090f]"
-      initial={{ opacity: 0 }}
-      animate={inView ? { opacity: 1 } : {}}
-      transition={{ duration: 0.6 }}
-    >
-      <div className="max-w-[1200px] mx-auto px-6 md:px-10">
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_1.6fr] gap-16 md:gap-24 items-center">
+    <section ref={ref} id="about" aria-label="About" className="py-28 md:py-36 bg-s1 border-y border-white/[0.06]">
+      <div className="max-w-site mx-auto px-6 md:px-10">
+        <div className="grid grid-cols-1 md:grid-cols-[340px_1fr] gap-14 md:gap-20 items-start">
 
-          {/* Photo */}
+          {/* Photo column */}
           <motion.div
-            initial={{ opacity: 0, x: -40 }}
+            initial={{ opacity: 0, x: -20 }}
             animate={inView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
             className="relative"
           >
-            <div className="relative aspect-[3/4] max-w-[320px] mx-auto md:mx-0 rounded-2xl overflow-hidden">
+            <div className="relative w-full aspect-[4/5] rounded-xl overflow-hidden bg-s2 border border-white/[0.07]">
               {PHOTO_URL ? (
                 <img
                   src={PHOTO_URL}
-                  alt="Shashi Shekhar"
-                  className="w-full h-full object-cover"
+                  alt="Shashi Shekhar — Credit Risk Data Scientist"
+                  className="w-full h-full object-cover object-top"
                 />
               ) : (
-                /* Placeholder — replace PHOTO_URL with '/photo.jpg' */
-                <div className="w-full h-full bg-gradient-to-br from-violet-900/40 via-[#0f1220] to-indigo-900/30 flex items-end p-6">
-                  <div>
-                    <div className="text-[0.65rem] font-mono tracking-[0.2em] uppercase text-white/25 mb-1">Add your photo</div>
-                    <div className="text-[0.75rem] text-white/40">Drop <code className="text-violet-400">photo.jpg</code> in <code className="text-violet-400">/public/</code> and set PHOTO_URL</div>
-                  </div>
+                <div className="flex flex-col items-start justify-end w-full h-full p-6">
+                  <p className="font-mono text-[0.65rem] tracking-[0.18em] uppercase text-white/20 mb-1">Your photo here</p>
+                  <p className="text-[0.75rem] text-white/30">
+                    Drop <code className="text-gold/70">photo.jpg</code> in <code className="text-gold/70">/public/</code> and set PHOTO_URL
+                  </p>
                 </div>
               )}
-              {/* Gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#07090f]/60 via-transparent to-transparent" />
+              {/* Subtle gradient overlay at base */}
+              <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-s2/70 to-transparent pointer-events-none" />
             </div>
 
-            {/* Floating credential badge */}
+            {/* Role badge */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={inView ? { opacity: 1, scale: 1 } : {}}
-              transition={{ delay: 0.5, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute -right-4 bottom-8 md:right-[-2rem] bg-[#0d1017] border border-white/[0.1] rounded-xl px-4 py-3 shadow-2xl"
+              initial={{ opacity: 0, y: 10 }}
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.6, delay: 0.45 }}
+              className="absolute -bottom-5 -right-3 md:right-[-1.5rem] bg-s2 border border-white/[0.09] rounded-lg px-4 py-3 shadow-xl"
             >
-              <div className="text-[0.65rem] text-white/35 font-mono tracking-widest uppercase mb-0.5">Currently at</div>
-              <div className="text-sm font-semibold text-white">PayPal</div>
-              <div className="text-[0.7rem] text-violet-400 font-mono mt-0.5">Credit Risk · DS</div>
+              <p className="font-mono text-[0.6rem] tracking-[0.18em] uppercase text-white/28 mb-0.5">Currently</p>
+              <p className="text-[0.88rem] font-semibold text-white leading-tight">PayPal</p>
+              <p className="font-mono text-[0.68rem] text-gold/80 mt-0.5">Credit Risk · DS</p>
             </motion.div>
           </motion.div>
 
-          {/* Text */}
+          {/* Text column */}
           <motion.div
-            initial={{ opacity: 0, x: 40 }}
+            initial={{ opacity: 0, x: 20 }}
             animate={inView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.12 }}
+            className="pt-2 md:pt-4"
           >
-            <div className="inline-flex items-center gap-2 text-[0.68rem] font-mono tracking-[0.2em] uppercase text-violet-400 mb-5">
-              <span className="w-4 h-px bg-violet-400" /> About
-            </div>
-            <h2 className="text-[clamp(1.8rem,2.8vw,2.5rem)] font-bold leading-[1.2] tracking-[-0.025em] text-white mb-6">
-              I build the systems that<br />decide who gets credit.
+            <p className="font-mono text-[0.68rem] tracking-[0.22em] uppercase text-gold mb-5">About</p>
+
+            <h2 className="text-[clamp(1.7rem,2.6vw,2.4rem)] font-semibold leading-[1.18] tracking-[-0.025em] text-white mb-7 max-w-[520px]">
+              I build the models that decide who gets credit — and defend them in the room.
             </h2>
-            <div className="space-y-4 text-[0.93rem] font-light leading-[1.85] text-white/50">
+
+            <div className="space-y-5 text-[0.93rem] font-light leading-[1.9] text-white/50">
               <p>
-                Five years across three fintech cycles — from building a $500M loan book from scratch at Jodo,
-                to owning PD model governance across US and UK commercial portfolios at PayPal.
+                I started in fintech when credit risk was still largely a bureau-score exercise.
+                Three companies, five years, and a $3B+ portfolio later, my view is simple:
+                most credit decisions are limited by the quality of the features, not the model.
               </p>
               <p>
-                My edge: I treat credit risk as an applied signal processing problem.
-                Where others aggregate, I decompose. Where others use rolling means, I use FFT.
-                The result is features that survive governance review because they have a
-                first-principles explanation.
+                My contribution has been applying signal processing — specifically FFT — to transaction data
+                to extract cyclicality that rolling averages destroy. The result is features with a
+                first-principles explanation that survive both MRM review and a credit committee challenge.
               </p>
               <p>
-                I present directly to Credit Risk Strategy Committees. I defend positions in
-                Model Risk Management forums. I ship to production.
+                Outside the model, I write governance documents, present to Credit Risk Strategy Committees,
+                and hire. I treat policy architecture as seriously as feature engineering.
               </p>
             </div>
 
-            <div className="mt-8 flex flex-wrap gap-2">
-              {['PD Models', 'FFT Feature Eng.', 'Open Banking', 'SHAP / MRM', 'XGBoost / LightGBM', 'PSI / KS Monitoring', 'Scorecard WoE/IV', 'Policy Architecture'].map(tag => (
-                <span key={tag} className="px-3 py-1 rounded-full text-[0.68rem] font-medium tracking-wide border border-white/[0.08] text-white/45 bg-white/[0.03]">
-                  {tag}
+            <div className="mt-8 pt-8 border-t border-white/[0.07] flex flex-wrap gap-2">
+              {[
+                'PD Modelling', 'FFT Feature Engineering', 'Open Banking / PSD2',
+                'XGBoost · LightGBM', 'SHAP · MRM', 'PSI / KS Monitoring',
+                'Scorecard WoE/IV', 'Champion-Challenger', 'Policy Architecture',
+              ].map(t => (
+                <span
+                  key={t}
+                  className="text-[0.68rem] font-medium tracking-wide px-3 py-1.5 rounded border border-white/[0.08] text-white/38 bg-white/[0.02]"
+                >
+                  {t}
                 </span>
               ))}
             </div>
@@ -477,300 +377,311 @@ function AboutSection() {
 
         </div>
       </div>
-    </motion.section>
+    </section>
   );
 }
 
-// ---------------------------------------------------------------------------
-// REUSABLE SECTION COMPONENTS
-// ---------------------------------------------------------------------------
-function Section({ children, className = '', id }: { children: React.ReactNode; className?: string; id?: string }) {
-  const ref    = useRef<HTMLElement>(null);
-  const inView = useInView(ref, { once: true, margin: '-80px' });
-  return (
-    <motion.section
-      ref={ref} id={id}
-      className={`py-28 ${className}`}
-      initial={{ opacity: 0, y: 24 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-    >
-      {children}
-    </motion.section>
-  );
-}
-
-function Label({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="inline-flex items-center gap-2 text-[0.68rem] font-mono tracking-[0.2em] uppercase text-violet-400 mb-4">
-      <span className="w-4 h-px bg-violet-400" />{children}
-    </div>
-  );
-}
-
-function H2({ children, light = false }: { children: React.ReactNode; light?: boolean }) {
-  return (
-    <h2 className={`text-[clamp(1.8rem,2.8vw,2.6rem)] font-bold leading-[1.15] tracking-[-0.025em] max-w-[640px] ${light ? 'text-white' : 'text-white'}`}>
-      {children}
-    </h2>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// OUTCOMES SECTION
-// ---------------------------------------------------------------------------
+// ─── Outcomes ───────────────────────────────────────────────────────────────
 const outcomes = [
-  { context: 'PayPal · Feature Engineering', metric: '20 bps',  label: 'KS lift via FFT-based periodicity extraction',      desc: 'Implemented Fast Fourier Transforms to extract dominant cashflow cyclicality in daily deposits. RFM metrics normalized by business cycle rather than arbitrary calendar windows — improved signal-to-noise in production PD models.' },
-  { context: 'PayPal · US/UK Portfolio',     metric: '18%',     label: 'Reduction in early-stage delinquency',              desc: 'Replaced 3-month single-horizon default indicator with a multi-horizon (3–12m) framework. Demonstrated adverse selection failure in specific merchant segments. Adopted as production policy layer.' },
-  { context: 'PayPal · UK Open Banking',     metric: 'PSD2',    label: 'Transaction stability via Open Banking',            desc: 'Engineered recurring obligation detection and income stability metrics from Open Banking APIs — supplementing bureau signals for thin-file segments where traditional credit history is insufficient.' },
-  { context: 'Liquiloans · Decisioning',     metric: '340 bps', label: 'Scorecard Gini improvement',                        desc: 'Full scorecard ownership with SHAP-driven explainability for MRM compliance. Led 9-month development cycle including hiring and sprint planning. PSI/CSI stability monitoring throughout.' },
-  { context: 'Jodo · 0 → 1 Risk',            metric: '$500M',   label: 'Origination book from zero infrastructure',         desc: 'Built initial credit architecture for education lending with no historical bad labels. Structural proxies from transaction data; interest-split reconciliation for multi-lender syndication.' },
+  {
+    co:     'PayPal · Feature Engineering',
+    metric: '20 bps',
+    title:  'KS lift via FFT-based periodicity extraction',
+    body:   'Standard aggregation of merchant transaction data masks cashflow volatility. Applying Fast Fourier Transforms to daily deposit sequences extracts dominant business cycle frequency — normalising RFM metrics by that cycle rather than an arbitrary calendar window improved signal-to-noise in production PD models.',
+  },
+  {
+    co:     'PayPal · US/UK Portfolio',
+    metric: '18%',
+    title:  'Reduction in early-stage delinquency',
+    body:   'The prescribed 30-DPD at 3-month single-horizon indicator failed to capture adverse selection in specific merchant segments. A multi-horizon framework (3–12m) was proposed, challenged, and ultimately adopted as a production policy layer — not just model input.',
+  },
+  {
+    co:     'PayPal · UK Open Banking',
+    metric: 'PSD2',
+    title:  'Transaction stability features from Open Banking APIs',
+    body:   'Engineered recurring obligation detection and income stability metrics from Open Banking data. These supplement bureau signals for thin-file commercial segments where traditional credit history is structurally insufficient as a liquidity proxy.',
+  },
+  {
+    co:     'Liquiloans · Full-Stack Decisioning',
+    metric: '340 bps',
+    title:  'Scorecard Gini improvement',
+    body:   'End-to-end ownership of the scorecard suite — WoE/IV architecture, SHAP-driven explainability for MRM compliance, champion-challenger deployment, PSI/CSI monitoring. Led a 9-month development cycle including team formation.',
+  },
+  {
+    co:     'Jodo · 0 → 1 Credit Architecture',
+    metric: '$500M',
+    title:  'Origination book built from zero infrastructure',
+    body:   'Built the initial credit decisioning architecture for education lending with no historical bad labels. Structural proxies from transaction data formed the base policy; interest-split reconciliation logic handled multi-lender syndication.',
+  },
 ];
 
-function OutcomesSection() {
+function Outcomes() {
   return (
-    <Section id="work" className="bg-[#05080f]">
-      <div className="max-w-[1200px] mx-auto px-6 md:px-10">
-        <Label>Strategic Outcomes</Label>
-        <H2>Impact that survived<br />the governance forum.</H2>
-        <p className="text-[0.93rem] font-light text-white/40 max-w-[500px] mt-3 mb-12 leading-[1.8]">
-          Not backtest results. Portfolio-level shifts adopted post-governance review.
-        </p>
+    <section id="work" aria-label="Strategic outcomes" className="py-28 md:py-36 bg-bg">
+      <div className="max-w-site mx-auto px-6 md:px-10">
+
+        <motion.p {...rise(0)} className="font-mono text-[0.68rem] tracking-[0.22em] uppercase text-gold mb-4">
+          Strategic Outcomes
+        </motion.p>
+        <motion.h2 {...rise(0.06)} className="text-[clamp(1.7rem,2.6vw,2.4rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-white mb-3 max-w-[600px]">
+          Impact validated in governance, not just backtesting.
+        </motion.h2>
+        <motion.p {...rise(0.12)} className="text-[0.93rem] font-light text-white/40 max-w-[480px] mb-14 leading-[1.8]">
+          Every number below represents a portfolio-level shift adopted post Credit Risk Strategy Committee review.
+        </motion.p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {outcomes.map((o, i) => (
-            <motion.div
+            <motion.article
               key={o.metric + i}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-40px' }}
-              transition={{ delay: i * 0.07, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="group relative rounded-2xl p-7 bg-white/[0.03] border border-white/[0.07]
-                hover:bg-white/[0.055] hover:border-white/[0.13]
-                transition-all duration-400 overflow-hidden"
+              {...rise(i * 0.06)}
+              className="card-accent relative rounded-xl p-7 bg-s1 border border-white/[0.07] hover:border-white/[0.13] transition-colors duration-300 overflow-hidden"
             >
-              {/* Top glow line on hover */}
-              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-violet-500/0 via-violet-500/60 to-violet-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-              <div className="text-[0.65rem] font-mono tracking-[0.16em] uppercase text-white/30 mb-3">{o.context}</div>
-              <div className="text-[2.2rem] font-bold text-white leading-none mb-1 tracking-tight">{o.metric}</div>
-              <div className="text-[0.82rem] font-medium text-white/60 mb-4">{o.label}</div>
-              <div className="text-[0.8rem] text-white/30 leading-[1.75] border-t border-white/[0.06] pt-4">{o.desc}</div>
-            </motion.div>
+              <p className="font-mono text-[0.62rem] tracking-[0.18em] uppercase text-white/28 mb-4">{o.co}</p>
+              <p className="text-[2rem] font-semibold text-white leading-none tracking-tight mb-2">{o.metric}</p>
+              <p className="text-[0.83rem] font-medium text-white/60 mb-4 leading-[1.45]">{o.title}</p>
+              <p className="text-[0.78rem] text-white/30 leading-[1.75] border-t border-white/[0.06] pt-4">{o.body}</p>
+            </motion.article>
           ))}
         </div>
+
       </div>
-    </Section>
+    </section>
   );
 }
 
-// ---------------------------------------------------------------------------
-// GOVERNANCE / DECISIONS
-// ---------------------------------------------------------------------------
+// ─── Governance / Decisions ──────────────────────────────────────────────────
 const decisions = [
   {
-    id:     CASE_STUDY_IDS.REJECTED_DEFAULT_INDICATOR,
-    num:    '01',
-    title:  'Rejecting the prescribed default indicator',
-    tags:   ['Strategic Trade-off', 'Model Risk'],
-    body:   'The standard 30-DPD at 3 months was statistically insufficient for the portfolio\'s long-tail exposure. I argued for a multi-window definition. While complexity was flagged by MRM, the resulting risk segments were robust enough to become the primary policy rule engine — reducing early-life delinquency by 18%.',
-    result: 'Trade-off: Granularity vs. Stability. Decision: Policy layer, not model score.',
+    id:    CASE_STUDY_IDS.REJECTED_DEFAULT_INDICATOR,
+    n:     '01',
+    title: 'Rejecting the prescribed 30-DPD default indicator',
+    tags:  ['Model Risk', 'Governance'],
+    body:  'The standard 30-DPD at 3 months was statistically insufficient for the portfolio\'s long-tail commercial exposure. I built the case for a multi-window definition — acknowledging the added complexity, but demonstrating that the resulting risk segments were stable enough to operate as the primary policy rule engine. Early-life delinquency fell 18%.',
+    line:  'Trade-off: Granularity vs. Stability — resolved in favour of policy, not model.',
   },
   {
-    id:     CASE_STUDY_IDS.FFT_RFM_FEATURES,
-    num:    '02',
-    title:  'FFT-based RFM: Signal Processing in Credit Risk',
-    tags:   ['Scipy', 'Feature Engineering'],
-    body:   'Standard deposit counts fail to distinguish a business receiving $10k weekly vs $40k monthly — fundamentally different credit profiles. By applying FFT to transaction series I extracted the dominant period, normalising risk metrics by business cycle rather than calendar window.',
-    result: 'Top 5 SHAP feature. 20 bps KS increment in production.',
+    id:    CASE_STUDY_IDS.FFT_RFM_FEATURES,
+    n:     '02',
+    title: 'Signal processing as a feature engineering discipline',
+    tags:  ['Feature Engineering', 'Scipy'],
+    body:  'Standard deposit count and sum features treat a business with $10k weekly and $40k monthly as identical credit profiles. Applying FFT to transaction series surfaces the dominant business cycle — normalising all downstream RFM metrics to that cycle rather than an arbitrary 30-day window. The periodicity stability score became a top-5 SHAP feature in production.',
+    line:  '20 bps KS increment. Survived three rounds of MRM challenge.',
   },
   {
-    id:     CASE_STUDY_IDS.MULTI_SCORE_GUARDRAILS,
-    num:    '03',
-    title:  'Multi-Score Production Guardrails',
-    tags:   ['Portfolio Monitoring', 'PSI/CSI'],
-    body:   'Blanket PSI thresholds fail on non-uniform joint score distributions. I developed segment-specific breach alerts and Chi-square weighted composites — reducing noise-driven false positives in automated monitoring across the $3B+ portfolio.',
-    result: 'Automated drift detection across high-dimensional risk segments.',
+    id:    CASE_STUDY_IDS.MULTI_SCORE_GUARDRAILS,
+    n:     '03',
+    title: 'Rebuilding PSI monitoring for non-uniform joint distributions',
+    tags:  ['Portfolio Monitoring', 'PSI/CSI'],
+    body:  'Blanket PSI thresholds fail when the underlying score distribution is non-uniform across segments — which is the norm, not the exception, in a commercial lending portfolio. I developed segment-specific breach thresholds calibrated to historical variance, plus Chi-square weighted composites that reduced noise-driven false positive alerts substantially.',
+    line:  'Automated drift detection across high-dimensional risk segments.',
   },
 ];
 
-function GovernanceSection() {
+function Governance() {
   return (
-    <Section id="decisions" className="bg-[#07090f]">
-      <div className="max-w-[1200px] mx-auto px-6 md:px-10">
-        <Label>Governance &amp; Decisions</Label>
-        <H2>Positions defended in<br />Risk Committees.</H2>
-        <p className="text-[0.93rem] font-light text-white/40 max-w-[500px] mt-3 mb-12 leading-[1.8]">
-          Technical trade-offs, rejection of prescribed metrics, second-order thinking.
-        </p>
+    <section id="decisions" aria-label="Governance decisions" className="py-28 md:py-36 bg-s1 border-y border-white/[0.06]">
+      <div className="max-w-site mx-auto px-6 md:px-10">
 
-        <div className="space-y-px">
+        <motion.p {...rise(0)} className="font-mono text-[0.68rem] tracking-[0.22em] uppercase text-gold mb-4">
+          Governance &amp; Decisions
+        </motion.p>
+        <motion.h2 {...rise(0.06)} className="text-[clamp(1.7rem,2.6vw,2.4rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-white mb-3 max-w-[600px]">
+          Positions defended in Risk Committees.
+        </motion.h2>
+        <motion.p {...rise(0.12)} className="text-[0.93rem] font-light text-white/40 max-w-[480px] mb-14 leading-[1.8]">
+          Technical trade-offs, rejected prescriptions, second-order thinking about model risk.
+        </motion.p>
+
+        <div className="space-y-3">
           {decisions.map((d, i) => (
-            <motion.div
+            <motion.article
               key={d.id}
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: '-40px' }}
-              transition={{ delay: i * 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              {...rise(i * 0.08)}
               onClick={() => trackCaseStudyClicked(d.id, d.title)}
-              className="group grid grid-cols-[48px_1fr] md:grid-cols-[80px_1fr] gap-6 md:gap-10 p-7 md:p-9
-                rounded-2xl bg-white/[0.02] border border-white/[0.05]
-                hover:bg-white/[0.045] hover:border-white/[0.1] cursor-pointer
-                transition-all duration-300"
+              className="group grid grid-cols-[52px_1fr] md:grid-cols-[72px_1fr] gap-6 md:gap-10 p-7 md:p-9 rounded-xl bg-bg border border-white/[0.07] hover:border-white/[0.14] cursor-pointer transition-colors duration-300"
             >
-              <div className="font-mono text-[2rem] md:text-[3rem] text-white/[0.04] leading-none pt-1 group-hover:text-white/[0.08] transition-colors">{d.num}</div>
+              <span className="font-mono text-[0.65rem] tracking-[0.14em] text-white/18 pt-1 group-hover:text-white/30 transition-colors">{d.n}</span>
               <div>
-                <h3 className="text-[1.1rem] md:text-[1.2rem] font-semibold text-white/80 mb-3 leading-[1.35] group-hover:text-white transition-colors duration-300">
+                <h3 className="text-[1.02rem] font-semibold text-white/75 mb-3 leading-[1.4] group-hover:text-white transition-colors duration-300">
                   {d.title}
                 </h3>
                 <div className="flex gap-2 flex-wrap mb-4">
                   {d.tags.map(t => (
-                    <span key={t} className="text-[0.62rem] font-medium tracking-[0.1em] uppercase text-violet-400/70 px-2.5 py-1 bg-violet-400/[0.07] rounded-full border border-violet-400/[0.15]">{t}</span>
+                    <span key={t} className="font-mono text-[0.6rem] tracking-[0.12em] uppercase text-gold/55 px-2.5 py-1 bg-gold/[0.06] rounded border border-gold/[0.14]">
+                      {t}
+                    </span>
                   ))}
                 </div>
-                <p className="text-[0.85rem] text-white/35 leading-[1.8] max-w-[620px]">{d.body}</p>
-                <div className="mt-4 text-[0.78rem] font-mono text-white/25">
-                  → <span className="text-violet-400/80">{d.result}</span>
-                </div>
+                <p className="text-[0.83rem] text-white/35 leading-[1.82] max-w-[640px]">{d.body}</p>
+                <p className="mt-4 font-mono text-[0.72rem] text-white/22">
+                  → <span className="text-gold/70">{d.line}</span>
+                </p>
               </div>
-            </motion.div>
+            </motion.article>
           ))}
         </div>
+
       </div>
-    </Section>
+    </section>
   );
 }
 
-// ---------------------------------------------------------------------------
-// PHILOSOPHY
-// ---------------------------------------------------------------------------
-const philosophies = [
-  { title: 'Aggregation is a lossy transformation',  body: 'A simple sum of bank statement data destroys the temporal signal. Credit risk is a liquidity timing problem. FFT preserves what rolling averages mask.' },
-  { title: 'Bureau data is a floor, not a ceiling',  body: 'Traditional scores identify who defaulted in the past. Transaction data identifies who is approaching a cashflow crunch now.' },
-  { title: 'Model risk is often an execution gap',   body: 'A perfect PD model with flawed interest-accrual architecture will fail on reconciliation. Infrastructure is part of the risk model.' },
-  { title: 'Explainability (SHAP) is for governance',body: 'Feature importance doesn\'t guarantee fairness, but ensures auditability. The ability to defend a single decline to a regulator is as critical as the model Gini.' },
+// ─── Philosophy ──────────────────────────────────────────────────────────────
+const beliefs = [
+  {
+    title: 'Aggregation is a lossy transformation.',
+    body:  'A sum of monthly deposits destroys the temporal signal. Credit risk is a liquidity timing problem. The difference between a borrower who will default and one who won\'t often lives in the cashflow rhythm, not the total.',
+  },
+  {
+    title: 'Bureau data is a floor, not a ceiling.',
+    body:  'A credit score identifies who has already failed. Transaction data identifies who is approaching failure. The first is retrospective risk measurement; the second is prospective risk management. They are not interchangeable.',
+  },
+  {
+    title: 'Model risk is usually an infrastructure problem.',
+    body:  'A technically correct PD model sitting on a flawed interest-accrual architecture will fail on reconciliation. Every risk system is only as good as its last mile — the policy rule engine, the decisioning API, the monitoring pipeline.',
+  },
+  {
+    title: 'Explainability is a governance requirement, not a technical nicety.',
+    body:  'In a $3B+ portfolio, the ability to defend a single adverse decision to a regulator is as operationally critical as the model\'s Gini coefficient. SHAP values are a compliance tool before they are an analytical one.',
+  },
 ];
 
-function PhilosophySection() {
+function Philosophy() {
   return (
-    <Section id="philosophy" className="bg-[#05080f]">
-      <div className="max-w-[1200px] mx-auto px-6 md:px-10">
-        <Label>Risk Philosophy</Label>
-        <H2>Views formed in<br />production, not textbooks.</H2>
+    <section id="philosophy" aria-label="Risk philosophy" className="py-28 md:py-36 bg-bg">
+      <div className="max-w-site mx-auto px-6 md:px-10">
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-12">
-          {philosophies.map((p, i) => (
-            <motion.div
-              key={p.title}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-40px' }}
-              transition={{ delay: i * 0.08, duration: 0.6 }}
-              className="p-8 rounded-2xl border border-white/[0.07] bg-white/[0.02]
-                hover:border-violet-500/30 hover:bg-violet-500/[0.03]
-                transition-all duration-400 group"
+        <motion.p {...rise(0)} className="font-mono text-[0.68rem] tracking-[0.22em] uppercase text-gold mb-4">
+          Thinking
+        </motion.p>
+        <motion.h2 {...rise(0.06)} className="text-[clamp(1.7rem,2.6vw,2.4rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-white mb-3 max-w-[560px]">
+          Views formed in production, not textbooks.
+        </motion.h2>
+        <motion.p {...rise(0.12)} className="text-[0.93rem] font-light text-white/40 max-w-[440px] mb-14 leading-[1.8]">
+          Positions held through five years of building, shipping, and defending.
+        </motion.p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {beliefs.map((b, i) => (
+            <motion.article
+              key={b.title}
+              {...rise(i * 0.08)}
+              className="card-accent relative rounded-xl p-8 bg-s1 border border-white/[0.07] hover:border-white/[0.12] transition-colors duration-300 overflow-hidden"
             >
-              <div className="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center mb-5 group-hover:bg-violet-500/20 transition-colors">
-                <span className="text-violet-400 text-sm font-bold">{i + 1}</span>
-              </div>
-              <h4 className="text-[1rem] font-semibold text-white/80 mb-3 leading-[1.4]">{p.title}</h4>
-              <p className="text-[0.82rem] text-white/35 leading-[1.8]">{p.body}</p>
-            </motion.div>
+              <p className="font-mono text-[0.62rem] tracking-[0.2em] uppercase text-gold/55 mb-4">0{i + 1}</p>
+              <h3 className="text-[1rem] font-semibold text-white/78 leading-[1.45] mb-3">{b.title}</h3>
+              <p className="text-[0.82rem] text-white/32 leading-[1.8]">{b.body}</p>
+            </motion.article>
           ))}
         </div>
+
       </div>
-    </Section>
+    </section>
   );
 }
 
-// ---------------------------------------------------------------------------
-// CAREER TIMELINE
-// ---------------------------------------------------------------------------
-const career = [
-  { period: '2022 — Present', role: 'Data Scientist — Credit Risk', company: 'PayPal',      badge: '$3B+ · US & UK', desc: 'PD model governance for commercial portfolios. FFT feature engineering. Open Banking PSD2 integration. CRSC presentations.' },
-  { period: '2020 — 2022',    role: 'Data Scientist — Risk',        company: 'Liquiloans',  badge: '340 bps Gini',   desc: 'Full scorecard suite. Champion-challenger frameworks. 9-month dev cycle ownership.' },
-  { period: '2019 — 2020',    role: 'Data Scientist',               company: 'Jodo',        badge: '$500M book',     desc: '0→1 credit decisioning. Transaction data pipeline. Multi-lender syndication logic.' },
+// ─── Career ──────────────────────────────────────────────────────────────────
+const roles = [
+  {
+    period:  '2022 — Present',
+    title:   'Data Scientist — Credit Risk',
+    company: 'PayPal',
+    badge:   '$3B+ · US & UK',
+    body:    'PD model governance across US and UK commercial lending portfolios. FFT-based feature engineering. Open Banking PSD2 integration. Presentations to Credit Risk Strategy Committee.',
+  },
+  {
+    period:  '2020 — 2022',
+    title:   'Data Scientist — Risk & Underwriting',
+    company: 'Liquiloans',
+    badge:   '340 bps Gini',
+    body:    'Full scorecard suite: WoE/IV architecture, champion-challenger deployment, SHAP explainability for MRM. Led a 9-month development cycle including technical hiring.',
+  },
+  {
+    period:  '2019 — 2020',
+    title:   'Data Scientist',
+    company: 'Jodo',
+    badge:   '$500M book',
+    body:    '0→1 credit decisioning for education lending. Transaction data pipeline, risk segmentation logic, multi-lender syndication reconciliation.',
+  },
 ];
 
-function CareerSection() {
+function Career() {
   return (
-    <Section id="career" className="bg-[#07090f]">
-      <div className="max-w-[1200px] mx-auto px-6 md:px-10">
-        <Label>Career</Label>
-        <H2>Ownership across<br />three fintech cycles.</H2>
+    <section id="career" aria-label="Career" className="py-28 md:py-36 bg-s1 border-y border-white/[0.06]">
+      <div className="max-w-site mx-auto px-6 md:px-10">
 
-        <div className="relative mt-14 pl-6 border-l border-white/[0.07]">
-          {career.map((c, i) => (
+        <motion.p {...rise(0)} className="font-mono text-[0.68rem] tracking-[0.22em] uppercase text-gold mb-4">
+          Career
+        </motion.p>
+        <motion.h2 {...rise(0.06)} className="text-[clamp(1.7rem,2.6vw,2.4rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-white mb-14 max-w-[480px]">
+          Ownership across three fintech cycles.
+        </motion.h2>
+
+        {/* Timeline */}
+        <div className="relative timeline-line pl-8 md:pl-10 space-y-10">
+          {roles.map((r, i) => (
             <motion.div
-              key={c.company}
-              initial={{ opacity: 0, x: -16 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: '-40px' }}
-              transition={{ delay: i * 0.12, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-              className="relative mb-12 last:mb-0 pl-8 group"
+              key={r.company}
+              {...rise(i * 0.1)}
+              className="relative group"
             >
-              {/* Timeline dot */}
-              <div className="absolute -left-[1.85rem] top-1.5 w-3 h-3 rounded-full bg-[#07090f] border-2 border-violet-500/50 group-hover:border-violet-400 group-hover:shadow-[0_0_12px_rgba(167,139,250,0.4)] transition-all duration-300" />
+              {/* Dot */}
+              <div className="absolute -left-[2.1rem] md:-left-[2.6rem] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-white/20 bg-bg group-hover:border-gold/60 transition-colors duration-300" />
 
-              <div className="font-mono text-[0.68rem] tracking-[0.16em] uppercase text-white/25 mb-1">{c.period}</div>
-              <div className="text-[1.05rem] font-semibold text-white/80 leading-tight">{c.role}</div>
-              <div className="flex items-center gap-3 mt-1 mb-3">
-                <span className="text-[0.82rem] font-medium text-violet-400">{c.company}</span>
-                <span className="text-[0.65rem] font-mono text-white/20 px-2 py-0.5 bg-white/[0.04] rounded-full border border-white/[0.07]">{c.badge}</span>
+              <p className="font-mono text-[0.65rem] tracking-[0.18em] uppercase text-white/25 mb-1">{r.period}</p>
+              <p className="text-[1.05rem] font-semibold text-white/80 leading-tight">{r.title}</p>
+              <div className="flex items-center gap-3 mt-1.5 mb-3">
+                <span className="text-[0.83rem] font-medium text-gold/80">{r.company}</span>
+                <span className="font-mono text-[0.62rem] px-2.5 py-0.5 rounded border border-white/[0.08] text-white/28 bg-white/[0.03]">{r.badge}</span>
               </div>
-              <p className="text-[0.82rem] text-white/35 leading-[1.8] max-w-[520px]">{c.desc}</p>
+              <p className="text-[0.82rem] text-white/35 leading-[1.82] max-w-[560px]">{r.body}</p>
             </motion.div>
           ))}
         </div>
+
       </div>
-    </Section>
+    </section>
   );
 }
 
-// ---------------------------------------------------------------------------
-// CTA / CONTACT
-// ---------------------------------------------------------------------------
-function CTASection() {
+// ─── Contact ─────────────────────────────────────────────────────────────────
+function Contact() {
   return (
-    <section id="contact" className="relative py-32 bg-[#05080f] overflow-hidden">
-      {/* Ambient glow */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="w-[600px] h-[600px] rounded-full bg-violet-600/[0.06] blur-[120px]" />
+    <section id="contact" aria-label="Contact" className="py-28 md:py-40 bg-bg">
+      {/* Ambient glow — single, centred, very low opacity */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 flex justify-center"
+        style={{ transform: 'translateY(-30%)' }}
+      >
+        <div
+          className="w-[500px] h-[500px] rounded-full opacity-[0.035]"
+          style={{ background: 'radial-gradient(circle, #C9A84C 0%, transparent 65%)' }}
+        />
       </div>
 
-      <div className="relative z-10 max-w-[700px] mx-auto px-6 md:px-10 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <div className="inline-flex items-center gap-2 text-[0.68rem] font-mono tracking-[0.2em] uppercase text-violet-400 mb-6">
-            <span className="w-4 h-px bg-violet-400" /> Connect
-          </div>
+      <div className="relative z-10 max-w-[640px] mx-auto px-6 md:px-10 text-center">
+        <motion.div {...rise(0)}>
+          <p className="font-mono text-[0.68rem] tracking-[0.22em] uppercase text-gold mb-6 inline-block">
+            Let&apos;s talk
+          </p>
 
-          <h2 className="text-[clamp(2rem,4vw,3.2rem)] font-bold leading-[1.12] tracking-[-0.025em] text-white mb-5">
-            Let&apos;s build something<br />
-            <GradientText>worth defending.</GradientText>
+          <h2 className="text-[clamp(2rem,3.8vw,3.2rem)] font-semibold leading-[1.1] tracking-[-0.03em] text-white mb-5">
+            Exploring Director-level risk roles.
           </h2>
 
-          <p className="text-[0.95rem] font-light text-white/40 leading-[1.85] mb-10">
-            Senior risk roles at global fintech and banking firms.
-            Relocation-ready for UK, EU, Singapore, or Canada.
+          <p className="text-[0.95rem] font-light text-white/42 leading-[1.85] mb-10">
+            I&apos;m looking for roles where credit architecture, governance, and quantitative depth
+            are all valued at once. Open to relocation — UK, EU, Singapore, or Canada.
           </p>
 
           <div className="flex flex-wrap gap-3 justify-center mb-10">
             <a
               href={`mailto:${EMAIL}`}
               onClick={trackEmailClicked}
-              className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full font-semibold text-[0.82rem] tracking-wide
-                bg-white text-[#05080f]
-                hover:bg-white/90 hover:scale-[1.02] hover:shadow-[0_0_40px_rgba(255,255,255,0.12)]
-                transition-all duration-300"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded text-[0.8rem] font-semibold tracking-[0.06em] uppercase bg-white text-bg hover:bg-white/90 transition-colors duration-300"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-                <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4l-10 8L2 4"/>
-              </svg>
               Email me
             </a>
             <a
@@ -778,114 +689,87 @@ function CTASection() {
               target="_blank"
               rel="noopener noreferrer"
               onClick={trackCalendlyClicked}
-              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full font-semibold text-[0.82rem] tracking-wide
-                bg-white/[0.07] text-white/80 border border-white/[0.12]
-                hover:bg-white/[0.12] hover:text-white
-                transition-all duration-300"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded text-[0.8rem] font-semibold tracking-[0.06em] uppercase text-white/60 border border-white/[0.12] hover:text-white hover:border-white/25 transition-all duration-300"
             >
-              Book a call →
+              Schedule a call
             </a>
           </div>
 
-          <div className="flex items-center justify-center gap-8">
-            <a href={LINKEDIN_URL} target="_blank" rel="noopener noreferrer" onClick={() => trackLinkedInClicked('cta')}
-              className="text-[0.72rem] font-medium tracking-[0.12em] uppercase text-white/25 hover:text-violet-400 transition-colors duration-300">
-              LinkedIn
-            </a>
-            <span className="w-px h-4 bg-white/[0.1]" />
-            <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" onClick={trackGitHubClicked}
-              className="text-[0.72rem] font-medium tracking-[0.12em] uppercase text-white/25 hover:text-violet-400 transition-colors duration-300">
-              GitHub
-            </a>
-            <span className="w-px h-4 bg-white/[0.1]" />
-            <a href={RESUME_PDF} target="_blank" rel="noopener noreferrer" onClick={() => trackResumeDownload('cta')}
-              className="text-[0.72rem] font-medium tracking-[0.12em] uppercase text-white/25 hover:text-violet-400 transition-colors duration-300">
-              Resume PDF
-            </a>
+          <div className="flex items-center justify-center gap-8 text-[0.7rem] font-medium tracking-[0.14em] uppercase">
+            <a href={LINKEDIN_URL} target="_blank" rel="noopener noreferrer"
+              onClick={() => trackLinkedInClicked('cta')}
+              className="text-white/28 hover:text-gold/80 transition-colors duration-300">LinkedIn</a>
+            <span className="w-px h-3.5 bg-white/[0.1]" aria-hidden="true" />
+            <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer"
+              onClick={trackGitHubClicked}
+              className="text-white/28 hover:text-gold/80 transition-colors duration-300">GitHub</a>
+            <span className="w-px h-3.5 bg-white/[0.1]" aria-hidden="true" />
+            <a href={RESUME_PDF} target="_blank" rel="noopener noreferrer"
+              onClick={() => trackResumeDownload('cta')}
+              className="text-white/28 hover:text-gold/80 transition-colors duration-300">Resume</a>
           </div>
+
         </motion.div>
       </div>
     </section>
   );
 }
 
-// ---------------------------------------------------------------------------
-// JSON-LD — Person schema
-// ---------------------------------------------------------------------------
+// ─── JSON-LD ─────────────────────────────────────────────────────────────────
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Person',
   name: 'Shashi Shekhar',
-  jobTitle: 'Data Scientist — Credit Risk',
+  jobTitle: 'Credit Risk Data Scientist',
   worksFor: { '@type': 'Organization', name: 'PayPal', url: 'https://paypal.com' },
-  description: 'Credit Risk Data Scientist specializing in PD model governance, FFT-based feature engineering, and Open Banking integration for commercial lending portfolios.',
-  knowsAbout: ['Probability of Default Models', 'FFT Feature Engineering', 'Open Banking PSD2', 'Credit Risk Governance', 'XGBoost LightGBM', 'SHAP Explainability', 'PSI KS Monitoring', 'Scorecard WoE IV Architecture', 'Credit Risk Data Science', 'Fintech Risk Systems'],
+  description: 'Credit Risk Data Scientist at PayPal. Specialises in PD model governance, FFT-based feature engineering, and Open Banking integration for commercial lending portfolios exceeding $3B.',
+  knowsAbout: [
+    'Credit Risk', 'Probability of Default Models', 'FFT Feature Engineering',
+    'Open Banking PSD2', 'Risk Governance', 'Model Risk Management',
+    'XGBoost LightGBM', 'SHAP Explainability', 'PSI KS Gini Monitoring',
+    'Scorecard WoE IV', 'Credit Risk Data Science', 'Fintech',
+  ],
   url: SITE_URL,
   sameAs: [LINKEDIN_URL, GITHUB_URL],
   email: EMAIL,
 };
 
-// ---------------------------------------------------------------------------
-// ROOT PAGE
-// ---------------------------------------------------------------------------
+// ─── Page ────────────────────────────────────────────────────────────────────
 export default function Page() {
   return (
     <>
-      {/* Gradient text animation — injected once globally */}
-      <style>{`
-        @keyframes gradientShift {
-          0%   { background-position: 0% 50% }
-          50%  { background-position: 100% 50% }
-          100% { background-position: 0% 50% }
-        }
-        .gradient-text {
-          background: linear-gradient(
-            270deg,
-            #a78bfa, #818cf8, #38bdf8, #34d399, #f472b6, #a78bfa
-          );
-          background-size: 400% 400%;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          animation: gradientShift 6s ease infinite;
-        }
-      `}</style>
-
-      {/* SEO meta */}
-      <title>Shashi Shekhar — Credit Risk Data Scientist | PD Models · FFT · Open Banking</title>
-      <meta name="description" content="Credit Risk Data Scientist at PayPal. PD model governance, FFT-based feature engineering, Open Banking integration. $3B+ commercial lending portfolio." />
-      <meta name="keywords" content="Shashi Shekhar, Credit Risk Data Scientist, PD Models, FFT Feature Engineering, Open Banking, PayPal Risk, Scorecard, SHAP, Probability of Default, Shashi Shekhar PayPal" />
+      <title>Shashi Shekhar — Credit Risk Data Scientist | PD Models · FFT · Open Banking · PayPal</title>
+      <meta name="description" content="Credit Risk Data Scientist at PayPal governing a $3B+ commercial lending portfolio. Specialist in PD model lifecycle, FFT-based feature engineering, Open Banking integration, and risk governance." />
+      <meta name="keywords" content="Shashi Shekhar, Shashi Shekhar PayPal, Credit Risk Data Scientist, PD Models, FFT Feature Engineering, Open Banking, Risk Governance, Probability of Default, Scorecard, SHAP, LightGBM, XGBoost" />
       <link rel="canonical" href={SITE_URL} />
-      <meta property="og:type" content="website" />
-      <meta property="og:url" content={SITE_URL} />
-      <meta property="og:title" content="Shashi Shekhar — Credit Risk Data Scientist" />
-      <meta property="og:description" content="PD model governance, FFT feature engineering, Open Banking. $3B+ portfolio at PayPal." />
-      <meta property="og:image" content={`${SITE_URL}/og-image.png`} />
-      <meta property="og:image:width" content="1200" />
+      <meta property="og:type"        content="website" />
+      <meta property="og:url"         content={SITE_URL} />
+      <meta property="og:title"       content="Shashi Shekhar — Credit Risk Data Scientist" />
+      <meta property="og:description" content="$3B+ portfolio governance at PayPal. PD models, FFT feature engineering, Open Banking." />
+      <meta property="og:image"       content={`${SITE_URL}/og-image.png`} />
+      <meta property="og:image:width"  content="1200" />
       <meta property="og:image:height" content="630" />
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content="Shashi Shekhar — Credit Risk Data Scientist" />
-      <meta name="twitter:description" content="PD model governance, FFT feature engineering, Open Banking. $3B+ portfolio at PayPal." />
-      <meta name="twitter:image" content={`${SITE_URL}/og-image.png`} />
-
-      {/* JSON-LD */}
+      <meta name="twitter:card"        content="summary_large_image" />
+      <meta name="twitter:title"       content="Shashi Shekhar — Credit Risk Data Scientist" />
+      <meta name="twitter:description" content="$3B+ portfolio governance at PayPal. PD models, FFT feature engineering, Open Banking." />
+      <meta name="twitter:image"       content={`${SITE_URL}/og-image.png`} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      <CursorSpotlight />
       <Nav />
       <main>
-        <HeroSection />
-        <AboutSection />
-        <OutcomesSection />
-        <GovernanceSection />
-        <PhilosophySection />
-        <CareerSection />
-        <CTASection />
+        <Hero />
+        <About />
+        <Outcomes />
+        <Governance />
+        <Philosophy />
+        <Career />
+        <Contact />
       </main>
-      <footer className="py-8 border-t border-white/[0.05] bg-[#05080f]">
-        <div className="max-w-[1200px] mx-auto px-6 md:px-10 flex flex-col md:flex-row items-center justify-between gap-3">
-          <p className="text-[0.7rem] text-white/20 font-mono tracking-[0.08em]">© 2026 Shashi Shekhar</p>
-          <p className="text-[0.7rem] text-white/15 font-mono tracking-[0.08em]">Risk Architecture & Decision Systems</p>
+
+      <footer className="py-7 border-t border-white/[0.05] bg-bg">
+        <div className="max-w-site mx-auto px-6 md:px-10 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <p className="font-mono text-[0.65rem] tracking-[0.1em] text-white/18">© 2026 Shashi Shekhar</p>
+          <p className="font-mono text-[0.65rem] tracking-[0.1em] text-white/12">Credit Risk &amp; Decision Architecture</p>
         </div>
       </footer>
     </>
