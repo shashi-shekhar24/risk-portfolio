@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --ink:        #0a0f1a;
+    --paper:      #f7f5f0;
+    --cream:      #eee9df;
+    --navy:       #0f1b2d;
+    --slate:      #3d405b;
+    --gold:       #b8860b;
+    --gold-light: rgba(184, 134, 11, 0.08);
+    --accent:     #1b6ca8;
+    --muted:      #7a7a7a;
+    --border:     rgba(15, 27, 45, 0.07);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    font-size: 16px;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.7;
+  }
+
+  ::selection {
+    background: var(--navy);
+    color: var(--paper);
+  }
+
+  /* Smooth focus rings for accessibility */
+  *:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+}
+
+@layer utilities {
+  /* Timeline vertical rule */
+  .timeline-rule::before {
+    content: '';
+    position: absolute;
+    left: 24px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--border);
+  }
+
+  /* Gold gradient top bar on cards */
+  .card-gold-bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2.5px;
+    background: linear-gradient(90deg, var(--gold), var(--navy));
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+
+  .card-gold-bar:hover::before {
+    opacity: 1;
+  }
+
+  /* Underline animation for nav links */
+  .nav-underline::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 1.5px;
+    background: var(--gold);
+    transition: width 0.3s;
+  }
+
+  .nav-underline:hover::after {
+    width: 100%;
+  }
+}

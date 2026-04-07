@@ -1,0 +1,18 @@
+{"timestamp":"00:00:01.184","source":"Server","level":"LOG","message":""}
+{"timestamp":"00:00:01.184","source":"Server","level":"LOG","message":"  We detected TypeScript in your project and reconfigured your tsconfig.json file for you."}
+{"timestamp":"00:00:01.185","source":"Server","level":"LOG","message":"  The following suggested values were added to your tsconfig.json. These values can be changed to fit your project's needs:\n"}
+{"timestamp":"00:00:01.185","source":"Server","level":"LOG","message":"  \t- include was updated to add '.next/dev/types/**/*.ts'"}
+{"timestamp":"00:00:01.185","source":"Server","level":"LOG","message":""}
+{"timestamp":"00:00:01.186","source":"Server","level":"LOG","message":"  The following mandatory changes were made to your tsconfig.json:\n"}
+{"timestamp":"00:00:01.186","source":"Server","level":"LOG","message":"  \t- jsx was set to react-jsx (next.js uses the React automatic runtime)"}
+{"timestamp":"00:00:01.186","source":"Server","level":"LOG","message":""}
+{"timestamp":"00:00:01.205","source":"Server","level":"WARN","message":"⚠ The \"middleware\" file convention is deprecated. Please use \"proxy\" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy"}
+{"timestamp":"00:00:01.217","source":"Server","level":"ERROR","message":"⨯ Middleware cannot be used with \"output: export\". See more info here: https://nextjs.org/docs/advanced-features/static-html-export"}
+{"timestamp":"00:00:01.353","source":"Server","level":"LOG","message":""}
+{"timestamp":"00:00:39.210","source":"Server","level":"LOG","message":"○ Compiling / ..."}
+{"timestamp":"00:00:40.872","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
+{"timestamp":"00:00:40.872","source":"Browser","level":"ERROR","message":"eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.\nReact will never use eval() in production mode"}
+{"timestamp":"00:00:40.923","source":"Server","level":"ERROR","message":"[browser] \"eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.\\nReact will never use eval() in production mode\" \"\""}
+{"timestamp":"00:00:40.924","source":"Browser","level":"ERROR","message":"eval() is not supported in this environment. If this page was served with a `Content-Security-Policy` header, make sure that `unsafe-eval` is included. React requires eval() in development mode for various debugging features like reconstructing callstacks from a different environment.\nReact will never use eval() in production mode \"\""}
+{"timestamp":"00:00:41.182","source":"Browser","level":"LOG","message":"%c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit"}
+{"timestamp":"00:00:41.182","source":"Browser","level":"LOG","message":"%c[Vercel Web Analytics]%c [view] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {\"o\":\"http://localhost:3000/\",\"r\":\"\",\"sdkn\":\"@vercel/analytics/react\",\"sdkv\":\"1.6.1\",\"sv\":\"0.1.3\",\"ts\":1775601193063} /_vercel/insights/view"}
