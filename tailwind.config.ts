@@ -8,14 +8,18 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
-        mono: ['var(--font-jetbrains)', 'JetBrains Mono', 'monospace'],
+        sans: ['var(--font-ibm-plex-sans)', 'IBM Plex Sans', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-ibm-plex-mono)', 'IBM Plex Mono', 'monospace'],
       },
       colors: {
-        bg:       '#0B0F1A',
-        s1:       '#111827',
-        s2:       '#1a2035',
-        gold:     '#C9A84C',
+        bg:      '#F8F9FB',
+        bgalt:   '#F1F3F7',
+        surface: '#FFFFFF',
+        ink:     '#0F172A',
+        ink2:    '#334155',
+        ink3:    '#64748B',
+        border:  '#E2E8F0',
+        accent:  '#4F46E5',
       },
       maxWidth: {
         site: '1160px',

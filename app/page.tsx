@@ -6,7 +6,6 @@ import {
   trackResumeDownload,
   trackCaseStudyClicked,
   trackLinkedInClicked,
-  trackGitHubClicked,
   trackCalendlyClicked,
   trackEmailClicked,
   CASE_STUDY_IDS,
@@ -17,63 +16,115 @@ const SITE_URL     = 'https://risk-portfolio.vercel.app';
 const RESUME_PDF   = '/resume-shashi-shekhar.pdf';
 const CALENDLY_URL = 'YOUR_CALENDLY_LINK';
 const LINKEDIN_URL = 'https://linkedin.com/in/YOUR_LINKEDIN_SLUG';
-const GITHUB_URL   = 'https://github.com/YOUR_GITHUB_USERNAME';
 const EMAIL        = 'shashishekhar.ds@gmail.com';
-// Drop photo.jpg in /public/ and change null → '/photo.jpg'
-const PHOTO_URL: string | null = null;
 
 // ─── Motion preset ──────────────────────────────────────────────────────────
-// One animation used consistently across the entire page.
-// Opacity + 14px vertical rise, spring easing, 0.7s.
-// Nothing else moves.
 const rise = (delay = 0) => ({
-  initial:   { opacity: 0, y: 14 },
+  initial:     { opacity: 0, y: 14 },
   whileInView: { opacity: 1, y: 0 },
-  viewport:  { once: true, margin: '-60px' },
-  transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1], delay },
+  viewport:    { once: true, margin: '-60px' },
+  transition:  { duration: 0.7, ease: [0.22, 1, 0.36, 1], delay },
 });
 
-// ─── Subtle noise texture overlay on the hero ───────────────────────────────
-// A very faint animated grain. Visible only on close inspection.
-// No colours, no distracting patterns — just surface texture.
-function NoiseCanvas() {
-  const ref = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = ref.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let rafId: number;
-    const SIZE = 200;
-    canvas.width  = SIZE;
-    canvas.height = SIZE;
-
-    function drawNoise() {
-      const img = ctx!.createImageData(SIZE, SIZE);
-      for (let i = 0; i < img.data.length; i += 4) {
-        const v = Math.random() * 255;
-        img.data[i]     = v;
-        img.data[i + 1] = v;
-        img.data[i + 2] = v;
-        img.data[i + 3] = 12; // very transparent — barely visible
-      }
-      ctx!.putImageData(img, 0, 0);
-      rafId = requestAnimationFrame(drawNoise);
-    }
-
-    drawNoise();
-    return () => cancelAnimationFrame(rafId);
-  }, []);
-
+// ─── ROC / KS discrimination curve — inline SVG ─────────────────────────────
+function RocCurve() {
   return (
-    <canvas
-      ref={ref}
-      aria-hidden="true"
-      className="pointer-events-none absolute inset-0 w-full h-full opacity-40"
-      style={{ imageRendering: 'pixelated' }}
-    />
+    <div className="relative w-full rounded-xl border border-border bg-surface shadow-sm overflow-hidden p-6">
+      {/* Card header */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <p className="font-mono text-[0.62rem] tracking-[0.18em] uppercase text-ink3 mb-0.5">PD Model · Champion</p>
+          <p className="text-[0.82rem] font-semibold text-ink">Discrimination Curve</p>
+        </div>
+        <div className="flex gap-3">
+          {[
+            { label: 'AUC', val: '0.89' },
+            { label: 'KS',  val: '0.41' },
+            { label: 'Gini', val: '0.78' },
+          ].map(m => (
+            <div key={m.label} className="text-right">
+              <div className="text-[0.65rem] font-mono text-ink3 tracking-wider">{m.label}</div>
+              <div className="text-[0.9rem] font-semibold text-accent">{m.val}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* SVG chart */}
+      <svg
+        viewBox="0 0 320 200"
+        className="w-full"
+        aria-label="ROC curve showing AUC 0.89, KS 0.41, Gini 0.78"
+        role="img"
+      >
+        <defs>
+          <linearGradient id="rocFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="#4F46E5" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="#4F46E5" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+
+        {/* Grid lines */}
+        {[0.25, 0.5, 0.75].map(t => (
+          <line
+            key={t}
+            x1={t * 280 + 20} y1="10"
+            x2={t * 280 + 20} y2="175"
+            stroke="#E2E8F0" strokeWidth="1"
+          />
+        ))}
+        {[0.25, 0.5, 0.75].map(t => (
+          <line
+            key={t}
+            x1="20" y1={t * 165 + 10}
+            x2="300" y2={t * 165 + 10}
+            stroke="#E2E8F0" strokeWidth="1"
+          />
+        ))}
+
+        {/* Axis labels */}
+        <text x="160" y="195" textAnchor="middle" fontSize="8" fill="#94A3B8" fontFamily="IBM Plex Mono">False Positive Rate</text>
+        <text x="8" y="92" textAnchor="middle" fontSize="8" fill="#94A3B8" fontFamily="IBM Plex Mono" transform="rotate(-90,8,92)">True Positive Rate</text>
+
+        {/* Random classifier baseline */}
+        <line x1="20" y1="175" x2="300" y2="10" stroke="#CBD5E1" strokeWidth="1" strokeDasharray="4 3" />
+
+        {/* Champion model — filled area */}
+        <path
+          d="M20,175 C60,150 80,60 120,35 C160,12 200,10 300,10"
+          fill="url(#rocFill)"
+          stroke="none"
+        />
+        <path
+          d="M20,175 C60,150 80,60 120,35 C160,12 200,10 300,10"
+          fill="none"
+          stroke="#4F46E5"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+
+        {/* Challenger model — dashed */}
+        <path
+          d="M20,175 C55,158 90,90 130,58 C170,28 220,14 300,10"
+          fill="none"
+          stroke="#94A3B8"
+          strokeWidth="1.5"
+          strokeDasharray="5 3"
+          strokeLinecap="round"
+        />
+
+        {/* KS annotation */}
+        <line x1="118" y1="35" x2="118" y2="108" stroke="#4F46E5" strokeWidth="1" strokeDasharray="3 2" opacity="0.6" />
+        <rect x="90" y="64" width="52" height="16" rx="3" fill="#4F46E5" opacity="0.1" />
+        <text x="116" y="74" textAnchor="middle" fontSize="7.5" fill="#4F46E5" fontFamily="IBM Plex Mono" fontWeight="500">KS = 0.41</text>
+
+        {/* Legend */}
+        <line x1="170" y1="185" x2="185" y2="185" stroke="#4F46E5" strokeWidth="2" />
+        <text x="187" y="188" fontSize="7" fill="#64748B" fontFamily="IBM Plex Mono">Champion</text>
+        <line x1="220" y1="185" x2="235" y2="185" stroke="#94A3B8" strokeWidth="1.5" strokeDasharray="4 2" />
+        <text x="237" y="188" fontSize="7" fill="#64748B" fontFamily="IBM Plex Mono">Challenger</text>
+      </svg>
+    </div>
   );
 }
 
@@ -106,23 +157,23 @@ function Nav() {
       aria-label="Primary"
       className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ${
         scrolled
-          ? 'py-3.5 bg-[rgba(11,15,26,0.92)] backdrop-blur-xl border-b border-white/[0.05]'
+          ? 'py-3.5 bg-white/90 backdrop-blur-xl border-b border-border shadow-sm'
           : 'py-5 bg-transparent'
       }`}
     >
       <div className="max-w-site mx-auto px-6 md:px-10 flex items-center justify-between">
         {/* Wordmark */}
-        <span className="font-mono text-[0.72rem] font-medium tracking-[0.22em] uppercase text-white/70 select-none">
+        <span className="font-mono text-[0.72rem] font-medium tracking-[0.22em] uppercase text-ink2 select-none">
           Shashi Shekhar
         </span>
 
-        {/* Desktop */}
+        {/* Desktop links */}
         <ul className="hidden md:flex items-center gap-10" role="list">
           {links.map(([label, href]) => (
             <li key={href}>
               <button
                 onClick={() => go(href)}
-                className="text-[0.72rem] font-medium tracking-[0.1em] uppercase text-white/38 hover:text-white/80 transition-colors duration-300"
+                className="text-[0.72rem] font-medium tracking-[0.1em] uppercase text-ink3 hover:text-ink transition-colors duration-200"
               >
                 {label}
               </button>
@@ -130,13 +181,22 @@ function Nav() {
           ))}
         </ul>
 
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden md:flex items-center gap-3">
+          <a
+            href={CALENDLY_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={trackCalendlyClicked}
+            className="text-[0.72rem] font-semibold tracking-[0.08em] uppercase text-white bg-accent px-4 py-2 rounded hover:bg-[#4338CA] transition-colors duration-200"
+          >
+            Schedule a Call
+          </a>
           <a
             href={RESUME_PDF}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => trackResumeDownload('nav')}
-            className="text-[0.72rem] font-semibold tracking-[0.1em] uppercase text-gold border border-gold/40 px-4 py-2 rounded hover:bg-gold/8 transition-colors duration-300"
+            className="text-[0.72rem] font-semibold tracking-[0.08em] uppercase text-ink2 border border-border px-4 py-2 rounded hover:border-ink3 hover:text-ink transition-colors duration-200"
           >
             Resume
           </a>
@@ -146,15 +206,15 @@ function Nav() {
         <button
           aria-label={open ? 'Close menu' : 'Open menu'}
           aria-expanded={open}
-          className="md:hidden text-white/55 hover:text-white/90 transition-colors p-1"
+          className="md:hidden text-ink3 hover:text-ink transition-colors p-1"
           onClick={() => setOpen(o => !o)}
         >
           <svg width="22" height="16" viewBox="0 0 22 16" fill="none" aria-hidden="true">
-            <rect x="0" y="0"  width={open ? '22' : '22'} height="1.5" rx="1" fill="currentColor"
+            <rect x="0" y="0" width="22" height="1.5" rx="1" fill="currentColor"
               className={`transition-all duration-300 origin-center ${open ? 'translate-y-[7px] rotate-45' : ''}`}
               style={{ transformBox: 'fill-box' }}
             />
-            <rect x="0" y="7"  width="16" height="1.5" rx="1" fill="currentColor"
+            <rect x="0" y="7" width="16" height="1.5" rx="1" fill="currentColor"
               className={`transition-all duration-300 ${open ? 'opacity-0' : ''}`}
             />
             <rect x="0" y="14" width="22" height="1.5" rx="1" fill="currentColor"
@@ -170,22 +230,22 @@ function Nav() {
         <motion.div
           initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-          className="md:hidden absolute inset-x-0 top-full bg-[#0d1120] border-b border-white/[0.06] px-6 py-7 flex flex-col gap-6"
+          transition={{ duration: 0.2 }}
+          className="md:hidden absolute inset-x-0 top-full bg-surface border-b border-border px-6 py-7 flex flex-col gap-6 shadow-sm"
         >
           {links.map(([label, href]) => (
             <button
               key={href}
               onClick={() => go(href)}
-              className="text-left text-[0.8rem] font-medium tracking-[0.1em] uppercase text-white/50 hover:text-white"
+              className="text-left text-[0.8rem] font-medium tracking-[0.1em] uppercase text-ink3 hover:text-ink"
             >
               {label}
             </button>
           ))}
-          <a href={RESUME_PDF} target="_blank" rel="noopener noreferrer"
-            onClick={() => trackResumeDownload('nav')}
-            className="self-start text-[0.72rem] font-semibold tracking-[0.1em] uppercase text-gold border border-gold/40 px-4 py-2 rounded">
-            Resume
+          <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer"
+            onClick={trackCalendlyClicked}
+            className="self-start text-[0.72rem] font-semibold tracking-[0.08em] uppercase text-white bg-accent px-4 py-2 rounded">
+            Schedule a Call
           </a>
         </motion.div>
       )}
@@ -200,149 +260,122 @@ function Hero() {
       aria-label="Introduction"
       className="relative min-h-screen flex flex-col justify-center overflow-hidden bg-bg"
     >
-      {/* Grain */}
-      <NoiseCanvas />
-
-      {/* Very subtle radial glow — not a disco orb, just ambient warmth */}
+      {/* Subtle indigo glow top-right */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-32 -right-48 w-[700px] h-[700px] rounded-full opacity-[0.04]"
-        style={{ background: 'radial-gradient(circle, #C9A84C 0%, transparent 70%)' }}
+        className="pointer-events-none absolute -top-40 -right-40 w-[700px] h-[700px] rounded-full opacity-[0.07]"
+        style={{ background: 'radial-gradient(circle, #4F46E5 0%, transparent 65%)' }}
       />
 
       <div className="relative z-10 max-w-site mx-auto w-full px-6 md:px-10 pt-36 pb-24 md:pb-32">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-16 items-center">
 
-        {/* Status line */}
-        <motion.div {...rise(0)} className="flex items-center gap-3 mb-10">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
-          </span>
-          <span className="font-mono text-[0.68rem] tracking-[0.2em] uppercase text-white/35">
-            Open to Senior Risk &amp; Director roles — UK · EU · Singapore · Canada
-          </span>
-        </motion.div>
+          {/* Left: text */}
+          <div>
+            {/* Status */}
+            <motion.div {...rise(0)} className="flex items-center gap-3 mb-10">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-60" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+              <span className="font-mono text-[0.68rem] tracking-[0.2em] uppercase text-ink3">
+                Open to Senior Risk &amp; Director roles — UK · EU · Singapore · Canada
+              </span>
+            </motion.div>
 
-        {/* Main headline — typography carries the premium feel */}
-        <motion.h1
-          {...rise(0.08)}
-          className="text-[clamp(2.6rem,5.5vw,5rem)] font-semibold leading-[1.06] tracking-[-0.03em] text-white max-w-[860px] mb-7"
-        >
-          Credit risk is a signal<br className="hidden sm:block" /> processing problem.
-        </motion.h1>
+            {/* Headline */}
+            <motion.h1
+              {...rise(0.08)}
+              className="text-[clamp(2.4rem,5vw,4.4rem)] font-semibold leading-[1.08] tracking-[-0.03em] text-ink max-w-[760px] mb-7"
+            >
+              Credit risk is a<br className="hidden sm:block" /> signal processing problem.
+            </motion.h1>
 
-        {/* Sub-headline */}
-        <motion.p {...rise(0.16)} className="text-[1.05rem] font-light leading-[1.85] text-white/48 max-w-[540px] mb-12">
-          Five years governing PD models across a{' '}
-          <span className="text-white/75 font-normal">$3B+ commercial lending portfolio</span>{' '}
-          at PayPal. I extract signals others aggregate away —
-          then defend the architecture in governance forums.
-        </motion.p>
+            {/* Sub */}
+            <motion.p {...rise(0.16)} className="text-[1.05rem] font-light leading-[1.85] text-ink3 max-w-[520px] mb-12">
+              Five years governing PD models across a{' '}
+              <span className="text-ink2 font-normal">$3B+ commercial lending portfolio</span>{' '}
+              at PayPal. I extract signals others aggregate away —
+              then defend the architecture in governance forums.
+            </motion.p>
 
-        {/* CTAs — restrained */}
-        <motion.div {...rise(0.24)} className="flex flex-wrap items-center gap-4 mb-24">
-          <a
-            href="#work"
-            onClick={e => { e.preventDefault(); document.querySelector('#work')?.scrollIntoView({ behavior: 'smooth' }); }}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded text-[0.8rem] font-semibold tracking-[0.06em] uppercase bg-white text-bg hover:bg-white/90 transition-colors duration-300"
-          >
-            View Work
-          </a>
-          <a
-            href={`mailto:${EMAIL}`}
-            onClick={trackEmailClicked}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded text-[0.8rem] font-semibold tracking-[0.06em] uppercase text-white/60 border border-white/[0.12] hover:text-white hover:border-white/25 transition-all duration-300"
-          >
-            Get in touch
-          </a>
-        </motion.div>
+            {/* CTAs */}
+            <motion.div {...rise(0.24)} className="flex flex-wrap items-center gap-3 mb-20">
+              <a
+                href={CALENDLY_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={trackCalendlyClicked}
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded text-[0.8rem] font-semibold tracking-[0.06em] uppercase bg-accent text-white hover:bg-[#4338CA] transition-colors duration-200 shadow-sm"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                Schedule a Call
+              </a>
+              <a
+                href="#work"
+                onClick={e => { e.preventDefault(); document.querySelector('#work')?.scrollIntoView({ behavior: 'smooth' }); }}
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded text-[0.8rem] font-semibold tracking-[0.06em] uppercase text-ink2 border border-border hover:border-ink3 hover:text-ink transition-all duration-200"
+              >
+                View Work
+              </a>
+            </motion.div>
 
-        {/* Metrics bar — flush bottom of hero */}
-        <motion.div
-          {...rise(0.32)}
-          className="grid grid-cols-2 md:grid-cols-4 gap-px overflow-hidden rounded-lg border border-white/[0.07] bg-white/[0.07]"
-        >
-          {[
-            { n: '$3B+',    d: 'Exposure governed'       },
-            { n: '20 bps',  d: 'KS lift via FFT'          },
-            { n: '340 bps', d: 'Gini improvement'          },
-            { n: '5+ yrs',  d: 'In production risk systems' },
-          ].map(m => (
-            <div key={m.d} className="bg-bg px-6 py-5">
-              <div className="text-[1.55rem] font-semibold text-white tracking-tight leading-none mb-1.5">{m.n}</div>
-              <div className="text-[0.67rem] font-medium tracking-[0.14em] uppercase text-white/30">{m.d}</div>
-            </div>
-          ))}
-        </motion.div>
+            {/* Metrics bar */}
+            <motion.div
+              {...rise(0.32)}
+              className="grid grid-cols-2 md:grid-cols-4 gap-px rounded-xl border border-border bg-border overflow-hidden"
+            >
+              {[
+                { n: '$3B+',    d: 'Exposure governed'        },
+                { n: '20 bps',  d: 'KS lift via FFT'          },
+                { n: '340 bps', d: 'Gini improvement'          },
+                { n: '5+ yrs',  d: 'In production risk systems' },
+              ].map(m => (
+                <div key={m.d} className="bg-surface px-5 py-4">
+                  <div className="text-[1.4rem] font-semibold text-accent tracking-tight leading-none mb-1">{m.n}</div>
+                  <div className="text-[0.63rem] font-medium tracking-[0.14em] uppercase text-ink3">{m.d}</div>
+                </div>
+              ))}
+            </motion.div>
+          </div>
 
+          {/* Right: ROC/KS visual */}
+          <motion.div {...rise(0.2)} className="hidden lg:block">
+            <RocCurve />
+          </motion.div>
+
+        </div>
       </div>
     </section>
   );
 }
 
-// ─── About + Photo ──────────────────────────────────────────────────────────
+// ─── About ───────────────────────────────────────────────────────────────────
 function About() {
   const ref    = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, margin: '-80px' });
 
   return (
-    <section ref={ref} id="about" aria-label="About" className="py-28 md:py-36 bg-s1 border-y border-white/[0.06]">
+    <section ref={ref} id="about" aria-label="About" className="py-28 md:py-36 bg-bgalt border-y border-border">
       <div className="max-w-site mx-auto px-6 md:px-10">
-        <div className="grid grid-cols-1 md:grid-cols-[340px_1fr] gap-14 md:gap-20 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_340px] gap-14 md:gap-20 items-start">
 
-          {/* Photo column */}
+          {/* Text column */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={inView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
-            className="relative"
-          >
-            <div className="relative w-full aspect-[4/5] rounded-xl overflow-hidden bg-s2 border border-white/[0.07]">
-              {PHOTO_URL ? (
-                <img
-                  src={PHOTO_URL}
-                  alt="Shashi Shekhar — Credit Risk Data Scientist"
-                  className="w-full h-full object-cover object-top"
-                />
-              ) : (
-                <div className="flex flex-col items-start justify-end w-full h-full p-6">
-                  <p className="font-mono text-[0.65rem] tracking-[0.18em] uppercase text-white/20 mb-1">Your photo here</p>
-                  <p className="text-[0.75rem] text-white/30">
-                    Drop <code className="text-gold/70">photo.jpg</code> in <code className="text-gold/70">/public/</code> and set PHOTO_URL
-                  </p>
-                </div>
-              )}
-              {/* Subtle gradient overlay at base */}
-              <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-s2/70 to-transparent pointer-events-none" />
-            </div>
-
-            {/* Role badge */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, delay: 0.45 }}
-              className="absolute -bottom-5 -right-3 md:right-[-1.5rem] bg-s2 border border-white/[0.09] rounded-lg px-4 py-3 shadow-xl"
-            >
-              <p className="font-mono text-[0.6rem] tracking-[0.18em] uppercase text-white/28 mb-0.5">Currently</p>
-              <p className="text-[0.88rem] font-semibold text-white leading-tight">PayPal</p>
-              <p className="font-mono text-[0.68rem] text-gold/80 mt-0.5">Credit Risk · DS</p>
-            </motion.div>
-          </motion.div>
-
-          {/* Text column */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={inView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.12 }}
             className="pt-2 md:pt-4"
           >
-            <p className="font-mono text-[0.68rem] tracking-[0.22em] uppercase text-gold mb-5">About</p>
+            <p className="font-mono text-[0.68rem] tracking-[0.22em] uppercase text-accent mb-5">About</p>
 
-            <h2 className="text-[clamp(1.7rem,2.6vw,2.4rem)] font-semibold leading-[1.18] tracking-[-0.025em] text-white mb-7 max-w-[520px]">
+            <h2 className="text-[clamp(1.7rem,2.6vw,2.4rem)] font-semibold leading-[1.18] tracking-[-0.025em] text-ink mb-7 max-w-[520px]">
               I build the models that decide who gets credit — and defend them in the room.
             </h2>
 
-            <div className="space-y-5 text-[0.93rem] font-light leading-[1.9] text-white/50">
+            <div className="space-y-5 text-[0.93rem] font-light leading-[1.9] text-ink3">
               <p>
                 I started in fintech when credit risk was still largely a bureau-score exercise.
                 Three companies, five years, and a $3B+ portfolio later, my view is simple:
@@ -359,7 +392,7 @@ function About() {
               </p>
             </div>
 
-            <div className="mt-8 pt-8 border-t border-white/[0.07] flex flex-wrap gap-2">
+            <div className="mt-8 pt-8 border-t border-border flex flex-wrap gap-2">
               {[
                 'PD Modelling', 'FFT Feature Engineering', 'Open Banking / PSD2',
                 'XGBoost · LightGBM', 'SHAP · MRM', 'PSI / KS Monitoring',
@@ -367,11 +400,30 @@ function About() {
               ].map(t => (
                 <span
                   key={t}
-                  className="text-[0.68rem] font-medium tracking-wide px-3 py-1.5 rounded border border-white/[0.08] text-white/38 bg-white/[0.02]"
+                  className="text-[0.68rem] font-medium tracking-wide px-3 py-1.5 rounded border border-border text-ink3 bg-surface"
                 >
                   {t}
                 </span>
               ))}
+            </div>
+          </motion.div>
+
+          {/* Role badge card */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={inView ? { opacity: 1, x: 0 } : {}}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
+          >
+            <div className="rounded-xl border border-border bg-surface shadow-sm p-7">
+              <p className="font-mono text-[0.62rem] tracking-[0.18em] uppercase text-ink3 mb-1">Currently</p>
+              <p className="text-[1.15rem] font-semibold text-ink leading-tight mb-0.5">PayPal</p>
+              <p className="font-mono text-[0.72rem] text-accent font-medium mb-5">Credit Risk · Data Scientist</p>
+              <div className="space-y-3 text-[0.82rem] text-ink3 leading-[1.7]">
+                <p>PD model governance across US &amp; UK commercial portfolios ($3B+ AUM).</p>
+                <p>FFT-based feature engineering from merchant transaction data.</p>
+                <p>Open Banking PSD2 integration for thin-file credit assessment.</p>
+                <p>CRSC presentations and MRM documentation.</p>
+              </div>
             </div>
           </motion.div>
 
@@ -381,7 +433,7 @@ function About() {
   );
 }
 
-// ─── Outcomes ───────────────────────────────────────────────────────────────
+// ─── Outcomes ────────────────────────────────────────────────────────────────
 const outcomes = [
   {
     co:     'PayPal · Feature Engineering',
@@ -420,13 +472,13 @@ function Outcomes() {
     <section id="work" aria-label="Strategic outcomes" className="py-28 md:py-36 bg-bg">
       <div className="max-w-site mx-auto px-6 md:px-10">
 
-        <motion.p {...rise(0)} className="font-mono text-[0.68rem] tracking-[0.22em] uppercase text-gold mb-4">
+        <motion.p {...rise(0)} className="font-mono text-[0.68rem] tracking-[0.22em] uppercase text-accent mb-4">
           Strategic Outcomes
         </motion.p>
-        <motion.h2 {...rise(0.06)} className="text-[clamp(1.7rem,2.6vw,2.4rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-white mb-3 max-w-[600px]">
+        <motion.h2 {...rise(0.06)} className="text-[clamp(1.7rem,2.6vw,2.4rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-ink mb-3 max-w-[600px]">
           Impact validated in governance, not just backtesting.
         </motion.h2>
-        <motion.p {...rise(0.12)} className="text-[0.93rem] font-light text-white/40 max-w-[480px] mb-14 leading-[1.8]">
+        <motion.p {...rise(0.12)} className="text-[0.93rem] font-light text-ink3 max-w-[480px] mb-14 leading-[1.8]">
           Every number below represents a portfolio-level shift adopted post Credit Risk Strategy Committee review.
         </motion.p>
 
@@ -435,12 +487,12 @@ function Outcomes() {
             <motion.article
               key={o.metric + i}
               {...rise(i * 0.06)}
-              className="card-accent relative rounded-xl p-7 bg-s1 border border-white/[0.07] hover:border-white/[0.13] transition-colors duration-300 overflow-hidden"
+              className="card-accent relative rounded-xl p-7 bg-surface border border-border hover:border-accent/30 hover:shadow-sm transition-all duration-300 overflow-hidden"
             >
-              <p className="font-mono text-[0.62rem] tracking-[0.18em] uppercase text-white/28 mb-4">{o.co}</p>
-              <p className="text-[2rem] font-semibold text-white leading-none tracking-tight mb-2">{o.metric}</p>
-              <p className="text-[0.83rem] font-medium text-white/60 mb-4 leading-[1.45]">{o.title}</p>
-              <p className="text-[0.78rem] text-white/30 leading-[1.75] border-t border-white/[0.06] pt-4">{o.body}</p>
+              <p className="font-mono text-[0.62rem] tracking-[0.18em] uppercase text-ink3 mb-4">{o.co}</p>
+              <p className="text-[2rem] font-semibold text-accent leading-none tracking-tight mb-2">{o.metric}</p>
+              <p className="text-[0.83rem] font-medium text-ink mb-4 leading-[1.45]">{o.title}</p>
+              <p className="text-[0.78rem] text-ink3 leading-[1.75] border-t border-border pt-4">{o.body}</p>
             </motion.article>
           ))}
         </div>
@@ -450,7 +502,7 @@ function Outcomes() {
   );
 }
 
-// ─── Governance / Decisions ──────────────────────────────────────────────────
+// ─── Governance ───────────────────────────────────────────────────────────────
 const decisions = [
   {
     id:    CASE_STUDY_IDS.REJECTED_DEFAULT_INDICATOR,
@@ -480,16 +532,16 @@ const decisions = [
 
 function Governance() {
   return (
-    <section id="decisions" aria-label="Governance decisions" className="py-28 md:py-36 bg-s1 border-y border-white/[0.06]">
+    <section id="decisions" aria-label="Governance decisions" className="py-28 md:py-36 bg-bgalt border-y border-border">
       <div className="max-w-site mx-auto px-6 md:px-10">
 
-        <motion.p {...rise(0)} className="font-mono text-[0.68rem] tracking-[0.22em] uppercase text-gold mb-4">
+        <motion.p {...rise(0)} className="font-mono text-[0.68rem] tracking-[0.22em] uppercase text-accent mb-4">
           Governance &amp; Decisions
         </motion.p>
-        <motion.h2 {...rise(0.06)} className="text-[clamp(1.7rem,2.6vw,2.4rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-white mb-3 max-w-[600px]">
+        <motion.h2 {...rise(0.06)} className="text-[clamp(1.7rem,2.6vw,2.4rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-ink mb-3 max-w-[600px]">
           Positions defended in Risk Committees.
         </motion.h2>
-        <motion.p {...rise(0.12)} className="text-[0.93rem] font-light text-white/40 max-w-[480px] mb-14 leading-[1.8]">
+        <motion.p {...rise(0.12)} className="text-[0.93rem] font-light text-ink3 max-w-[480px] mb-14 leading-[1.8]">
           Technical trade-offs, rejected prescriptions, second-order thinking about model risk.
         </motion.p>
 
@@ -499,23 +551,23 @@ function Governance() {
               key={d.id}
               {...rise(i * 0.08)}
               onClick={() => trackCaseStudyClicked(d.id, d.title)}
-              className="group grid grid-cols-[52px_1fr] md:grid-cols-[72px_1fr] gap-6 md:gap-10 p-7 md:p-9 rounded-xl bg-bg border border-white/[0.07] hover:border-white/[0.14] cursor-pointer transition-colors duration-300"
+              className="group grid grid-cols-[52px_1fr] md:grid-cols-[72px_1fr] gap-6 md:gap-10 p-7 md:p-9 rounded-xl bg-surface border border-border hover:border-accent/30 hover:shadow-sm cursor-pointer transition-all duration-300"
             >
-              <span className="font-mono text-[0.65rem] tracking-[0.14em] text-white/18 pt-1 group-hover:text-white/30 transition-colors">{d.n}</span>
+              <span className="font-mono text-[0.65rem] tracking-[0.14em] text-ink3 pt-1 group-hover:text-accent transition-colors">{d.n}</span>
               <div>
-                <h3 className="text-[1.02rem] font-semibold text-white/75 mb-3 leading-[1.4] group-hover:text-white transition-colors duration-300">
+                <h3 className="text-[1.02rem] font-semibold text-ink2 mb-3 leading-[1.4] group-hover:text-ink transition-colors duration-200">
                   {d.title}
                 </h3>
                 <div className="flex gap-2 flex-wrap mb-4">
                   {d.tags.map(t => (
-                    <span key={t} className="font-mono text-[0.6rem] tracking-[0.12em] uppercase text-gold/55 px-2.5 py-1 bg-gold/[0.06] rounded border border-gold/[0.14]">
+                    <span key={t} className="font-mono text-[0.6rem] tracking-[0.12em] uppercase text-accent px-2.5 py-1 bg-[rgba(79,70,229,0.07)] rounded border border-[rgba(79,70,229,0.15)]">
                       {t}
                     </span>
                   ))}
                 </div>
-                <p className="text-[0.83rem] text-white/35 leading-[1.82] max-w-[640px]">{d.body}</p>
-                <p className="mt-4 font-mono text-[0.72rem] text-white/22">
-                  → <span className="text-gold/70">{d.line}</span>
+                <p className="text-[0.83rem] text-ink3 leading-[1.82] max-w-[640px]">{d.body}</p>
+                <p className="mt-4 font-mono text-[0.72rem] text-ink3">
+                  → <span className="text-accent">{d.line}</span>
                 </p>
               </div>
             </motion.article>
@@ -527,7 +579,7 @@ function Governance() {
   );
 }
 
-// ─── Philosophy ──────────────────────────────────────────────────────────────
+// ─── Philosophy ───────────────────────────────────────────────────────────────
 const beliefs = [
   {
     title: 'Aggregation is a lossy transformation.',
@@ -552,13 +604,13 @@ function Philosophy() {
     <section id="philosophy" aria-label="Risk philosophy" className="py-28 md:py-36 bg-bg">
       <div className="max-w-site mx-auto px-6 md:px-10">
 
-        <motion.p {...rise(0)} className="font-mono text-[0.68rem] tracking-[0.22em] uppercase text-gold mb-4">
+        <motion.p {...rise(0)} className="font-mono text-[0.68rem] tracking-[0.22em] uppercase text-accent mb-4">
           Thinking
         </motion.p>
-        <motion.h2 {...rise(0.06)} className="text-[clamp(1.7rem,2.6vw,2.4rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-white mb-3 max-w-[560px]">
+        <motion.h2 {...rise(0.06)} className="text-[clamp(1.7rem,2.6vw,2.4rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-ink mb-3 max-w-[560px]">
           Views formed in production, not textbooks.
         </motion.h2>
-        <motion.p {...rise(0.12)} className="text-[0.93rem] font-light text-white/40 max-w-[440px] mb-14 leading-[1.8]">
+        <motion.p {...rise(0.12)} className="text-[0.93rem] font-light text-ink3 max-w-[440px] mb-14 leading-[1.8]">
           Positions held through five years of building, shipping, and defending.
         </motion.p>
 
@@ -567,11 +619,11 @@ function Philosophy() {
             <motion.article
               key={b.title}
               {...rise(i * 0.08)}
-              className="card-accent relative rounded-xl p-8 bg-s1 border border-white/[0.07] hover:border-white/[0.12] transition-colors duration-300 overflow-hidden"
+              className="card-accent relative rounded-xl p-8 bg-surface border border-border hover:border-accent/30 hover:shadow-sm transition-all duration-300 overflow-hidden"
             >
-              <p className="font-mono text-[0.62rem] tracking-[0.2em] uppercase text-gold/55 mb-4">0{i + 1}</p>
-              <h3 className="text-[1rem] font-semibold text-white/78 leading-[1.45] mb-3">{b.title}</h3>
-              <p className="text-[0.82rem] text-white/32 leading-[1.8]">{b.body}</p>
+              <p className="font-mono text-[0.62rem] tracking-[0.2em] uppercase text-accent mb-4">0{i + 1}</p>
+              <h3 className="text-[1rem] font-semibold text-ink leading-[1.45] mb-3">{b.title}</h3>
+              <p className="text-[0.82rem] text-ink3 leading-[1.8]">{b.body}</p>
             </motion.article>
           ))}
         </div>
@@ -581,61 +633,66 @@ function Philosophy() {
   );
 }
 
-// ─── Career ──────────────────────────────────────────────────────────────────
+// ─── Career ───────────────────────────────────────────────────────────────────
 const roles = [
   {
-    period:  '2022 — Present',
-    title:   'Data Scientist — Credit Risk',
+    period:  'Nov 2024 — Present',
+    title:   'Data Scientist — Global Credit Risk',
     company: 'PayPal',
-    badge:   '$3B+ · US & UK',
-    body:    'PD model governance across US and UK commercial lending portfolios. FFT-based feature engineering. Open Banking PSD2 integration. Presentations to Credit Risk Strategy Committee.',
+    badge:   '$2B+ AUM · US & UK',
+    body:    'PD model execution and portfolio risk analysis for US/UK commercial lending. Feature engineering using Open Banking data. Presenting risk metrics and guardrail performance to CRSC. Collaborating with ML, fraud, and seller risk teams on cross-functional initiatives.',
   },
   {
-    period:  '2020 — 2022',
-    title:   'Data Scientist — Risk & Underwriting',
+    period:  'Feb 2024 — Oct 2024',
+    title:   'Senior Manager Analytics — Risk & Data Science',
     company: 'Liquiloans',
-    badge:   '340 bps Gini',
-    body:    'Full scorecard suite: WoE/IV architecture, champion-challenger deployment, SHAP explainability for MRM. Led a 9-month development cycle including technical hiring.',
+    badge:   '340 bps Gini · Team Lead (5)',
+    body:    'Owned scorecard suite development (application, risk, propensity). Built fraud detection model (GNN). Led team of 5 across model development and early warning systems. Developed credit strategies using PD/EAD/LGD framework.',
   },
   {
-    period:  '2019 — 2020',
-    title:   'Data Scientist',
+    period:  'Oct 2022 — Dec 2023',
+    title:   'Business Analyst — Strategy, Growth & Risk',
     company: 'Jodo',
-    badge:   '$500M book',
-    body:    '0→1 credit decisioning for education lending. Transaction data pipeline, risk segmentation logic, multi-lender syndication reconciliation.',
+    badge:   '$500M education lending',
+    body:    'Developed credit risk ML model for education lending book. Built ETL pipelines (AWS Glue, PySpark) and automated reporting. Led product analytics and cross-functional delivery.',
+  },
+  {
+    period:  'Jan 2021 — Oct 2022',
+    title:   'Data Analyst — Data Science Consulting',
+    company: 'Accelera Eloquent',
+    badge:   'Segmentation · NLP · A/B',
+    body:    'ML models for customer segmentation and NLP-based review analysis. A/B testing, dashboard development, and analytics consulting across retail and eCommerce clients.',
   },
 ];
 
 function Career() {
   return (
-    <section id="career" aria-label="Career" className="py-28 md:py-36 bg-s1 border-y border-white/[0.06]">
+    <section id="career" aria-label="Career" className="py-28 md:py-36 bg-bgalt border-y border-border">
       <div className="max-w-site mx-auto px-6 md:px-10">
 
-        <motion.p {...rise(0)} className="font-mono text-[0.68rem] tracking-[0.22em] uppercase text-gold mb-4">
+        <motion.p {...rise(0)} className="font-mono text-[0.68rem] tracking-[0.22em] uppercase text-accent mb-4">
           Career
         </motion.p>
-        <motion.h2 {...rise(0.06)} className="text-[clamp(1.7rem,2.6vw,2.4rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-white mb-14 max-w-[480px]">
+        <motion.h2 {...rise(0.06)} className="text-[clamp(1.7rem,2.6vw,2.4rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-ink mb-14 max-w-[480px]">
           Ownership across three fintech cycles.
         </motion.h2>
 
-        {/* Timeline */}
         <div className="relative timeline-line pl-8 md:pl-10 space-y-10">
           {roles.map((r, i) => (
             <motion.div
-              key={r.company}
+              key={r.company + i}
               {...rise(i * 0.1)}
               className="relative group"
             >
-              {/* Dot */}
-              <div className="absolute -left-[2.1rem] md:-left-[2.6rem] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-white/20 bg-bg group-hover:border-gold/60 transition-colors duration-300" />
+              <div className="absolute -left-[2.1rem] md:-left-[2.6rem] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-border bg-surface group-hover:border-accent transition-colors duration-300" />
 
-              <p className="font-mono text-[0.65rem] tracking-[0.18em] uppercase text-white/25 mb-1">{r.period}</p>
-              <p className="text-[1.05rem] font-semibold text-white/80 leading-tight">{r.title}</p>
+              <p className="font-mono text-[0.65rem] tracking-[0.18em] uppercase text-ink3 mb-1">{r.period}</p>
+              <p className="text-[1.05rem] font-semibold text-ink leading-tight">{r.title}</p>
               <div className="flex items-center gap-3 mt-1.5 mb-3">
-                <span className="text-[0.83rem] font-medium text-gold/80">{r.company}</span>
-                <span className="font-mono text-[0.62rem] px-2.5 py-0.5 rounded border border-white/[0.08] text-white/28 bg-white/[0.03]">{r.badge}</span>
+                <span className="text-[0.83rem] font-medium text-accent">{r.company}</span>
+                <span className="font-mono text-[0.62rem] px-2.5 py-0.5 rounded border border-border text-ink3 bg-surface">{r.badge}</span>
               </div>
-              <p className="text-[0.82rem] text-white/35 leading-[1.82] max-w-[560px]">{r.body}</p>
+              <p className="text-[0.82rem] text-ink3 leading-[1.82] max-w-[560px]">{r.body}</p>
             </motion.div>
           ))}
         </div>
@@ -645,77 +702,153 @@ function Career() {
   );
 }
 
-// ─── Contact ─────────────────────────────────────────────────────────────────
+// ─── Contact ──────────────────────────────────────────────────────────────────
 function Contact() {
   return (
-    <section id="contact" aria-label="Contact" className="py-28 md:py-40 bg-bg">
-      {/* Ambient glow — single, centred, very low opacity */}
+    <section id="contact" aria-label="Contact" className="py-28 md:py-40 bg-bg relative overflow-hidden">
+      {/* Subtle indigo ambient */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 flex justify-center"
-        style={{ transform: 'translateY(-30%)' }}
+        style={{ transform: 'translateY(-20%)' }}
       >
         <div
-          className="w-[500px] h-[500px] rounded-full opacity-[0.035]"
-          style={{ background: 'radial-gradient(circle, #C9A84C 0%, transparent 65%)' }}
+          className="w-[600px] h-[600px] rounded-full opacity-[0.05]"
+          style={{ background: 'radial-gradient(circle, #4F46E5 0%, transparent 65%)' }}
         />
       </div>
 
-      <div className="relative z-10 max-w-[640px] mx-auto px-6 md:px-10 text-center">
-        <motion.div {...rise(0)}>
-          <p className="font-mono text-[0.68rem] tracking-[0.22em] uppercase text-gold mb-6 inline-block">
-            Let&apos;s talk
-          </p>
+      <div className="relative z-10 max-w-site mx-auto px-6 md:px-10">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-12 items-center">
 
-          <h2 className="text-[clamp(2rem,3.8vw,3.2rem)] font-semibold leading-[1.1] tracking-[-0.03em] text-white mb-5">
-            Exploring Director-level risk roles.
-          </h2>
+          {/* Left */}
+          <motion.div {...rise(0)}>
+            {/* Availability badge */}
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-200 bg-emerald-50 mb-6">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-60" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+              <span className="font-mono text-[0.65rem] tracking-[0.12em] uppercase text-emerald-700 font-medium">Open to Senior Risk Roles</span>
+            </div>
 
-          <p className="text-[0.95rem] font-light text-white/42 leading-[1.85] mb-10">
-            I&apos;m looking for roles where credit architecture, governance, and quantitative depth
-            are all valued at once. Open to relocation — UK, EU, Singapore, or Canada.
-          </p>
+            <p className="font-mono text-[0.68rem] tracking-[0.22em] uppercase text-accent mb-4">Let&apos;s Connect</p>
 
-          <div className="flex flex-wrap gap-3 justify-center mb-10">
-            <a
-              href={`mailto:${EMAIL}`}
-              onClick={trackEmailClicked}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded text-[0.8rem] font-semibold tracking-[0.06em] uppercase bg-white text-bg hover:bg-white/90 transition-colors duration-300"
-            >
-              Email me
-            </a>
-            <a
-              href={CALENDLY_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={trackCalendlyClicked}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded text-[0.8rem] font-semibold tracking-[0.06em] uppercase text-white/60 border border-white/[0.12] hover:text-white hover:border-white/25 transition-all duration-300"
-            >
-              Schedule a call
-            </a>
-          </div>
+            <h2 className="text-[clamp(2rem,3.8vw,3.4rem)] font-semibold leading-[1.1] tracking-[-0.03em] text-ink mb-5 max-w-[520px]">
+              Ready to talk credit risk.
+            </h2>
 
-          <div className="flex items-center justify-center gap-8 text-[0.7rem] font-medium tracking-[0.14em] uppercase">
-            <a href={LINKEDIN_URL} target="_blank" rel="noopener noreferrer"
-              onClick={() => trackLinkedInClicked('cta')}
-              className="text-white/28 hover:text-gold/80 transition-colors duration-300">LinkedIn</a>
-            <span className="w-px h-3.5 bg-white/[0.1]" aria-hidden="true" />
-            <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer"
-              onClick={trackGitHubClicked}
-              className="text-white/28 hover:text-gold/80 transition-colors duration-300">GitHub</a>
-            <span className="w-px h-3.5 bg-white/[0.1]" aria-hidden="true" />
-            <a href={RESUME_PDF} target="_blank" rel="noopener noreferrer"
-              onClick={() => trackResumeDownload('cta')}
-              className="text-white/28 hover:text-gold/80 transition-colors duration-300">Resume</a>
-          </div>
+            <p className="text-[0.95rem] font-light text-ink3 leading-[1.85] mb-10 max-w-[480px]">
+              Interested in roles where model development connects directly to portfolio-level
+              decisions and governance. Open to relocation: UK, EU, Singapore, Canada.
+            </p>
 
-        </motion.div>
+            <div className="flex flex-wrap gap-3">
+              <a
+                href={CALENDLY_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={trackCalendlyClicked}
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded text-[0.8rem] font-semibold tracking-[0.06em] uppercase bg-accent text-white hover:bg-[#4338CA] transition-colors duration-200 shadow-sm"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                Schedule a Call
+              </a>
+              <a
+                href={`mailto:${EMAIL}`}
+                onClick={trackEmailClicked}
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded text-[0.8rem] font-semibold tracking-[0.06em] uppercase text-ink2 border border-border hover:border-ink3 hover:text-ink transition-all duration-200"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4l-10 8L2 4"/>
+                </svg>
+                Send Email
+              </a>
+            </div>
+          </motion.div>
+
+          {/* Right: contact card */}
+          <motion.div {...rise(0.1)}>
+            <div className="rounded-xl border border-border bg-surface shadow-sm p-6 min-w-[280px]">
+              <p className="font-mono text-[0.65rem] tracking-[0.14em] uppercase text-ink3 mb-4">Direct Channels</p>
+
+              <a
+                href={CALENDLY_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={trackCalendlyClicked}
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-[rgba(79,70,229,0.06)] transition-colors duration-150 group -mx-1"
+              >
+                <div className="w-9 h-9 rounded-lg border border-border bg-bgalt flex items-center justify-center flex-shrink-0">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <div className="text-[0.78rem] font-medium text-ink">Calendly</div>
+                  <div className="text-[0.68rem] text-ink3">Book a 30-min technical call</div>
+                </div>
+                <svg className="w-3.5 h-3.5 text-ink3 group-hover:text-accent transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+              </a>
+
+              <div className="border-t border-border my-1" />
+
+              <a
+                href={`mailto:${EMAIL}`}
+                onClick={trackEmailClicked}
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-[rgba(79,70,229,0.06)] transition-colors duration-150 group -mx-1"
+              >
+                <div className="w-9 h-9 rounded-lg border border-border bg-bgalt flex items-center justify-center flex-shrink-0">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4l-10 8L2 4"/>
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <div className="text-[0.78rem] font-medium text-ink">Email</div>
+                  <div className="text-[0.68rem] text-ink3">{EMAIL}</div>
+                </div>
+                <svg className="w-3.5 h-3.5 text-ink3 group-hover:text-accent transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+              </a>
+
+              <div className="border-t border-border my-1" />
+
+              <a
+                href={LINKEDIN_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => trackLinkedInClicked('cta')}
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-[rgba(79,70,229,0.06)] transition-colors duration-150 group -mx-1"
+              >
+                <div className="w-9 h-9 rounded-lg border border-border bg-bgalt flex items-center justify-center flex-shrink-0">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                    <path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <div className="text-[0.78rem] font-medium text-ink">LinkedIn</div>
+                  <div className="text-[0.68rem] text-ink3">Connect professionally</div>
+                </div>
+                <svg className="w-3.5 h-3.5 text-ink3 group-hover:text-accent transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+              </a>
+
+              <div className="mt-4 pt-4 border-t border-border">
+                <p className="text-[0.68rem] text-ink3 leading-[1.6]">
+                  <span className="text-ink2 font-medium">Open to relocation</span><br />
+                  UK · EU · Singapore · Canada
+                </p>
+              </div>
+            </div>
+          </motion.div>
+
+        </div>
       </div>
     </section>
   );
 }
 
-// ─── JSON-LD ─────────────────────────────────────────────────────────────────
+// ─── JSON-LD ──────────────────────────────────────────────────────────────────
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Person',
@@ -730,11 +863,11 @@ const jsonLd = {
     'Scorecard WoE IV', 'Credit Risk Data Science', 'Fintech',
   ],
   url: SITE_URL,
-  sameAs: [LINKEDIN_URL, GITHUB_URL],
+  sameAs: [LINKEDIN_URL],
   email: EMAIL,
 };
 
-// ─── Page ────────────────────────────────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Page() {
   return (
     <>
@@ -742,11 +875,11 @@ export default function Page() {
       <meta name="description" content="Credit Risk Data Scientist at PayPal governing a $3B+ commercial lending portfolio. Specialist in PD model lifecycle, FFT-based feature engineering, Open Banking integration, and risk governance." />
       <meta name="keywords" content="Shashi Shekhar, Shashi Shekhar PayPal, Credit Risk Data Scientist, PD Models, FFT Feature Engineering, Open Banking, Risk Governance, Probability of Default, Scorecard, SHAP, LightGBM, XGBoost" />
       <link rel="canonical" href={SITE_URL} />
-      <meta property="og:type"        content="website" />
-      <meta property="og:url"         content={SITE_URL} />
-      <meta property="og:title"       content="Shashi Shekhar — Credit Risk Data Scientist" />
-      <meta property="og:description" content="$3B+ portfolio governance at PayPal. PD models, FFT feature engineering, Open Banking." />
-      <meta property="og:image"       content={`${SITE_URL}/og-image.png`} />
+      <meta property="og:type"         content="website" />
+      <meta property="og:url"          content={SITE_URL} />
+      <meta property="og:title"        content="Shashi Shekhar — Credit Risk Data Scientist" />
+      <meta property="og:description"  content="$3B+ portfolio governance at PayPal. PD models, FFT feature engineering, Open Banking." />
+      <meta property="og:image"        content={`${SITE_URL}/og-image.png`} />
       <meta property="og:image:width"  content="1200" />
       <meta property="og:image:height" content="630" />
       <meta name="twitter:card"        content="summary_large_image" />
@@ -755,8 +888,12 @@ export default function Page() {
       <meta name="twitter:image"       content={`${SITE_URL}/og-image.png`} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-accent focus:text-white focus:rounded">
+        Skip to main content
+      </a>
+
       <Nav />
-      <main>
+      <main id="main-content">
         <Hero />
         <About />
         <Outcomes />
@@ -766,10 +903,10 @@ export default function Page() {
         <Contact />
       </main>
 
-      <footer className="py-7 border-t border-white/[0.05] bg-bg">
+      <footer className="py-7 border-t border-border bg-bgalt">
         <div className="max-w-site mx-auto px-6 md:px-10 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="font-mono text-[0.65rem] tracking-[0.1em] text-white/18">© 2026 Shashi Shekhar</p>
-          <p className="font-mono text-[0.65rem] tracking-[0.1em] text-white/12">Credit Risk &amp; Decision Architecture</p>
+          <p className="font-mono text-[0.65rem] tracking-[0.1em] text-ink3">© 2026 Shashi Shekhar</p>
+          <p className="font-mono text-[0.65rem] tracking-[0.1em] text-ink3">Credit Risk &amp; Decision Architecture</p>
         </div>
       </footer>
     </>
