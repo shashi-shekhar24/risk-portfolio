@@ -14,8 +14,8 @@ import {
 // ─── Replace these before deploying ────────────────────────────────────────
 const SITE_URL     = 'https://risk-portfolio.vercel.app';
 const RESUME_PDF   = '/resume-shashi-shekhar.pdf';
-const CALENDLY_URL = 'YOUR_CALENDLY_LINK';
-const LINKEDIN_URL = 'https://linkedin.com/in/YOUR_LINKEDIN_SLUG';
+const CALENDLY_URL = 'https://calendly.com/shashi__shekhar';
+const LINKEDIN_URL = 'https://www.linkedin.com/in/shashi--shekhar';
 const EMAIL        = 'shashishekhar.ds@gmail.com';
 
 // ─── Motion preset ──────────────────────────────────────────────────────────
@@ -706,39 +706,32 @@ function Career() {
 function Contact() {
   return (
     <section id="contact" aria-label="Contact" className="py-28 md:py-40 bg-bg relative overflow-hidden">
-      {/* Subtle indigo ambient */}
+      {/* Subtle indigo ambient — anchored bottom-left, mirroring the screenshot's glow */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 flex justify-center"
-        style={{ transform: 'translateY(-20%)' }}
+        className="pointer-events-none absolute -left-40 -bottom-40"
       >
         <div
-          className="w-[600px] h-[600px] rounded-full opacity-[0.05]"
+          className="w-[680px] h-[680px] rounded-full opacity-[0.06]"
           style={{ background: 'radial-gradient(circle, #4F46E5 0%, transparent 65%)' }}
         />
       </div>
 
       <div className="relative z-10 max-w-site mx-auto px-6 md:px-10">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-x-20 gap-y-14 lg:items-start">
 
-          {/* Left */}
+          {/* Left — headline, blurb, CTAs */}
           <motion.div {...rise(0)}>
-            {/* Availability badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-200 bg-emerald-50 mb-6">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-60" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-              </span>
-              <span className="font-mono text-[0.65rem] tracking-[0.12em] uppercase text-emerald-700 font-medium">Open to Senior Risk Roles</span>
-            </div>
+            <p className="font-mono text-[0.68rem] tracking-[0.22em] uppercase text-ink3 mb-7">
+              Open to Senior Risk Roles
+            </p>
 
-            <p className="font-mono text-[0.68rem] tracking-[0.22em] uppercase text-accent mb-4">Let&apos;s Connect</p>
-
-            <h2 className="text-[clamp(2rem,3.8vw,3.4rem)] font-semibold leading-[1.1] tracking-[-0.03em] text-ink mb-5 max-w-[520px]">
-              Ready to talk credit risk.
+            <h2 className="text-[clamp(2.6rem,5.4vw,4.6rem)] font-semibold leading-[1.04] tracking-[-0.035em] text-ink mb-8">
+              Ready to talk<br />
+              <span className="text-accent">credit risk.</span>
             </h2>
 
-            <p className="text-[0.95rem] font-light text-ink3 leading-[1.85] mb-10 max-w-[480px]">
+            <p className="text-[0.98rem] font-light text-ink2 leading-[1.85] mb-11 max-w-[500px]">
               Interested in roles where model development connects directly to portfolio-level
               decisions and governance. Open to relocation: UK, EU, Singapore, Canada.
             </p>
@@ -749,96 +742,75 @@ function Contact() {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={trackCalendlyClicked}
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded text-[0.8rem] font-semibold tracking-[0.06em] uppercase bg-accent text-white hover:bg-[#4338CA] transition-colors duration-200 shadow-sm"
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded text-[0.78rem] font-semibold tracking-[0.08em] uppercase bg-accent text-white hover:bg-[#4338CA] transition-colors duration-200 shadow-sm"
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                  <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                </svg>
                 Schedule a Call
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                </svg>
               </a>
               <a
                 href={`mailto:${EMAIL}`}
                 onClick={trackEmailClicked}
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded text-[0.8rem] font-semibold tracking-[0.06em] uppercase text-ink2 border border-border hover:border-ink3 hover:text-ink transition-all duration-200"
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded text-[0.78rem] font-semibold tracking-[0.08em] uppercase text-ink2 border border-border hover:border-ink3 hover:text-ink transition-all duration-200"
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                  <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4l-10 8L2 4"/>
-                </svg>
                 Send Email
               </a>
             </div>
           </motion.div>
 
-          {/* Right: contact card */}
-          <motion.div {...rise(0.1)}>
-            <div className="rounded-xl border border-border bg-surface shadow-sm p-6 min-w-[280px]">
-              <p className="font-mono text-[0.65rem] tracking-[0.14em] uppercase text-ink3 mb-4">Direct Channels</p>
+          {/* Right — divided channel list */}
+          <motion.div {...rise(0.1)} className="lg:pt-2">
 
-              <a
-                href={CALENDLY_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={trackCalendlyClicked}
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-[rgba(79,70,229,0.06)] transition-colors duration-150 group -mx-1"
-              >
-                <div className="w-9 h-9 rounded-lg border border-border bg-bgalt flex items-center justify-center flex-shrink-0">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <div className="text-[0.78rem] font-medium text-ink">Calendly</div>
-                  <div className="text-[0.68rem] text-ink3">Book a 30-min technical call</div>
-                </div>
-                <svg className="w-3.5 h-3.5 text-ink3 group-hover:text-accent transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
-              </a>
-
-              <div className="border-t border-border my-1" />
-
-              <a
-                href={`mailto:${EMAIL}`}
-                onClick={trackEmailClicked}
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-[rgba(79,70,229,0.06)] transition-colors duration-150 group -mx-1"
-              >
-                <div className="w-9 h-9 rounded-lg border border-border bg-bgalt flex items-center justify-center flex-shrink-0">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                    <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4l-10 8L2 4"/>
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <div className="text-[0.78rem] font-medium text-ink">Email</div>
-                  <div className="text-[0.68rem] text-ink3">{EMAIL}</div>
-                </div>
-                <svg className="w-3.5 h-3.5 text-ink3 group-hover:text-accent transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
-              </a>
-
-              <div className="border-t border-border my-1" />
-
-              <a
-                href={LINKEDIN_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => trackLinkedInClicked('cta')}
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-[rgba(79,70,229,0.06)] transition-colors duration-150 group -mx-1"
-              >
-                <div className="w-9 h-9 rounded-lg border border-border bg-bgalt flex items-center justify-center flex-shrink-0">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                    <path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <div className="text-[0.78rem] font-medium text-ink">LinkedIn</div>
-                  <div className="text-[0.68rem] text-ink3">Connect professionally</div>
-                </div>
-                <svg className="w-3.5 h-3.5 text-ink3 group-hover:text-accent transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
-              </a>
-
-              <div className="mt-4 pt-4 border-t border-border">
-                <p className="text-[0.68rem] text-ink3 leading-[1.6]">
-                  <span className="text-ink2 font-medium">Open to relocation</span><br />
-                  UK · EU · Singapore · Canada
-                </p>
+            <a
+              href={CALENDLY_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={trackCalendlyClicked}
+              className="group flex items-start justify-between gap-4 py-5 border-b border-border hover:border-ink3 transition-colors duration-200"
+            >
+              <div>
+                <div className="font-mono text-[0.62rem] tracking-[0.18em] uppercase text-ink3 mb-2">Calendly</div>
+                <div className="text-[1.05rem] text-ink group-hover:text-accent transition-colors duration-200">Book a 30-min technical call</div>
               </div>
+              <svg className="w-4 h-4 mt-1 text-ink3 group-hover:text-accent transition-colors duration-200 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+              </svg>
+            </a>
+
+            <a
+              href={`mailto:${EMAIL}`}
+              onClick={trackEmailClicked}
+              className="group flex items-start justify-between gap-4 py-5 border-b border-border hover:border-ink3 transition-colors duration-200"
+            >
+              <div>
+                <div className="font-mono text-[0.62rem] tracking-[0.18em] uppercase text-ink3 mb-2">Email</div>
+                <div className="text-[1.05rem] text-ink group-hover:text-accent transition-colors duration-200">{EMAIL}</div>
+              </div>
+              <svg className="w-4 h-4 mt-1 text-ink3 group-hover:text-accent transition-colors duration-200 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/>
+              </svg>
+            </a>
+
+            <a
+              href={LINKEDIN_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackLinkedInClicked('cta')}
+              className="group flex items-start justify-between gap-4 py-5 border-b border-border hover:border-ink3 transition-colors duration-200"
+            >
+              <div>
+                <div className="font-mono text-[0.62rem] tracking-[0.18em] uppercase text-ink3 mb-2">LinkedIn</div>
+                <div className="text-[1.05rem] text-ink group-hover:text-accent transition-colors duration-200">Connect professionally</div>
+              </div>
+              <svg className="w-4 h-4 mt-1 text-ink3 group-hover:text-accent transition-colors duration-200 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
+              </svg>
+            </a>
+
+            <div className="mt-8 px-5 py-5 rounded-lg bg-bgalt border border-border">
+              <p className="font-mono text-[0.62rem] tracking-[0.16em] uppercase text-ink3 mb-1.5">Open to relocation</p>
+              <p className="text-[0.9rem] text-ink2">UK · EU · Singapore · Canada</p>
             </div>
           </motion.div>
 
