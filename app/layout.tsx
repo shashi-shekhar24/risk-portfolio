@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
-import { Analytics } from '@vercel/analytics/react';
+import { Analytics } from '@vercel/analytics/next';
 import { site } from '@/content/site';
 import './globals.css';
 
