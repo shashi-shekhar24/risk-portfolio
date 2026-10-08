@@ -13,7 +13,7 @@
 export const site = {
   name: 'Shashi Shekhar',
   role: 'Credit Risk Strategy and Decision Science',
-  url: 'https://risk-portfolio.vercel.app',
+  url: 'https://www.shash-shekhar.com',
   resumePdf: '/resume-shashi-shekhar.pdf',
   calendly: 'https://calendly.com/shashi__shekhar',
   linkedin: 'https://www.linkedin.com/in/shashi--shekhar',
@@ -26,13 +26,13 @@ export const site = {
 export const hero = {
   status: 'Open to senior credit risk and decision science roles. Open to relocation.',
   headline:
-    'I design credit policy and PD models for a $2B+ business lending book, including Open Banking underwriting launched in the UK and US.',
+    'I design credit policy and PD models for a multi-billion-dollar business lending book, including Open Banking underwriting launched in the UK and US.',
   sub: 'My work decides which businesses are approved, at what price and credit line, and what each loan earns over its life. I report early-delinquency and guardrail metrics to the credit risk committee.',
   proof: [
-    { n: '+3%', d: 'Eligibility rate from a redesigned credit policy and new models' },
-    { n: '$150MM', d: 'More loans booked, at a 2% lower vintage loss rate than the prior strategy' },
+    { n: '+3%', d: 'Eligibility rate, at a 2% lower vintage loss rate than the prior strategy' },
     { n: '2.5%', d: 'Lower vintage loss rate from a new default definition, with a realised profit uplift' },
-    { n: '$2B+', d: 'Business lending book' },
+    { n: '2 markets', d: 'Open Banking underwriting launched in the UK and US' },
+    { n: '5+ years', d: 'In data science and credit risk strategy' },
   ],
 };
 
@@ -63,9 +63,9 @@ export const caseStudies: CaseStudy[] = [
     id: 'credit-policy-redesign',
     context: 'Business lending · Credit policy',
     title: 'More approvals at a lower loss rate',
-    outcome: 'Eligibility up 3% and $150MM more in booked loans, at a 2% lower vintage loss rate than the previous rule strategy.',
-    flowLabel: 'How the new strategy was set and tested',
-    flow: ['Buy box defined', 'Swap-set analysis against the old rules', 'Gross credit loss under balance control', 'Risk grades assigned by t-statistics'],
+    outcome: 'Eligibility up 3% and more loans booked, at a 2% lower vintage loss rate than the previous rule strategy.',
+    flowLabel: 'How the new strategy was tested',
+    flow: ['Swap-set analysis against the old rules', 'Gross credit loss under balance control', 'Risk grades assigned'],
     rows: [
       {
         label: 'Context',
@@ -77,11 +77,11 @@ export const caseStudies: CaseStudy[] = [
       },
       {
         label: 'Intervention',
-        text: 'I redesigned the eligibility rules and built the models behind them. I defined the buy box, ran swap-set analysis to compare the applicants swapped in and swapped out against the old strategy, used balance control to determine gross credit loss (GCL), and assigned risk grades using t-statistics.',
+        text: 'I redesigned the eligibility rules and built the models behind them. I ran swap-set analysis to compare the applicants swapped in and swapped out against the old strategy, used balance control to determine gross credit loss (GCL), and assigned risk grades.',
       },
       {
         label: 'Outcome',
-        text: 'Post-bureau eligibility rose 3% and booked loans grew by $150MM, with a vintage loss rate 2% lower than under the previous rule strategy.',
+        text: 'Post-bureau eligibility rose 3% and more loans were booked, with a vintage loss rate 2% lower than under the previous rule strategy.',
       },
     ],
   },
