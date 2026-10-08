@@ -27,7 +27,7 @@ export const hero = {
   status: 'Open to senior credit risk and decision science roles. Open to relocation.',
   headline:
     'I design credit policy, default definitions and PD models for a multi-billion-dollar US and UK small-business lending book.',
-  sub: 'My work decides which businesses are approved, at what price and credit line, and what each loan returns over its life. Every strategy I have taken to production cleared second-line risk, model risk management, legal and compliance review. I report early-delinquency and guardrail metrics to the credit risk committee.',
+  sub: 'My work decides which businesses are approved, at what price and credit line, and what each loan returns over its life. I am accountable to the credit risk committee for these strategies, and every one I have taken to production cleared second-line risk, model risk management, legal and compliance review.',
   proof: [
     { n: '+3 pp', d: 'Post-bureau eligibility from a redesigned credit policy' },
     { n: '−200 bps', d: 'Vintage loss rate across the portfolio, from the same redesign' },
@@ -219,9 +219,9 @@ export const experience = [
     company: 'PayPal',
     place: 'Bengaluru',
     lines: [
-      'Credit policy, default definitions, PD calibration and account-level economics for a multi-billion-dollar US and UK small-business lending book.',
-      'Every strategy cleared second-line risk, model risk management, legal and compliance review before production. Report early-delinquency and guardrail metrics to the credit risk committee.',
-      'Direct 2 external consultant data scientists.',
+      'Credit policy, default definitions, PD calibration and account-level economics for a multi-billion-dollar US and UK small-business lending book, accountable to the credit risk committee for early-delinquency and guardrail performance.',
+      'Run each strategy across its stakeholders: oversee external vendor PD models, align with the internal fraud team, specify rule-engine and process-flow changes for the rules and backend engineering teams, and defend the work through second-line risk, model risk management, legal and compliance review.',
+      'Direct 2 external consultant data scientists on strategy optimisation and automation.',
     ],
   },
   {

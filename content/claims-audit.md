@@ -8,6 +8,7 @@ and Context / Diagnosis / Intervention / Outcome.
 |---|---|
 | Multi-billion-dollar US and UK small-business lending book | Scale only, no figure |
 | Every strategy cleared second-line risk, model risk management, legal and compliance review | States that reviews happened; nothing from their content |
+| Accountable to the credit risk committee; stakeholders: vendor PD models, fraud team, rules and backend engineering; directs 2 consultants | Roles and relationships only; no committee name, vendor names or system names |
 | Credit policy redesign: post-bureau eligibility +3 pp, more loans booked, portfolio vintage loss rate −200 bps | Changes only; no baselines, levels or volumes |
 | Credit policy method: swap-set analysis, balance-controlled GCL, risk grades | Method only; no grading statistics, grade boundaries or loss levels |
 | Multi-horizon default definition: bank-based underwriting vintage loss rate −250 bps | Change only; no baseline or level |
