@@ -185,7 +185,7 @@ function Work() {
           Five pieces of work, each with the decision it changed.
         </h2>
         <p className="text-[0.95rem] leading-[1.7] text-ink2 max-w-[620px] mb-9">
-          Each one starts with the context, so you do not need to know the product to follow it. Figures are shown without baselines, and details covered by confidentiality are left out.
+          Each one starts with the context, so you do not need to know the product to follow it. Every piece cleared second-line risk, model risk management, legal and compliance review before production. Loss figures are changes, not levels; details covered by confidentiality are left out.
         </p>
         <div className="space-y-5">
           {caseStudies.map((cs, i) => (
