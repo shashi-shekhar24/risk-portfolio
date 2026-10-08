@@ -17,7 +17,7 @@ const config: Config = {
         surface: '#FFFFFF',
         ink:     '#0F172A',
         ink2:    '#334155',
-        ink3:    '#64748B',
+        ink3:    '#526079',
         border:  '#E2E8F0',
         accent:  '#4F46E5',
       },
