@@ -274,7 +274,7 @@ function Contact() {
             Hiring for credit risk?
           </h2>
           <p className="text-[0.95rem] leading-[1.7] text-ink2 max-w-[460px]">
-            I am based in Bengaluru and open to relocation. I need visa sponsorship, and I am glad to talk through
+            I am based in India and open to relocation. I need visa sponsorship outside India, and I am glad to talk through
             timing on a first call.
           </p>
         </div>

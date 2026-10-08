@@ -20,7 +20,7 @@ export const site = {
   email: 's.shashi24@outlook.com',
   title: 'Shashi Shekhar | Credit Risk Strategy and Decision Science',
   description:
-    'Credit risk strategist in US and UK small-business lending. Designs credit policy, default definitions and account-level economics, including Open Banking underwriting, taken through second-line, model risk, legal and compliance review to production. Open to relocation; requires visa sponsorship.',
+    'Credit risk strategist in US and UK small-business lending. Designs credit policy, default definitions and account-level economics, including Open Banking underwriting, taken through second-line, model risk, legal and compliance review to production. Open to relocation; requires visa sponsorship outside India.',
 };
 
 export const hero = {
@@ -40,7 +40,7 @@ export const hero = {
 export const hiring = [
   { k: 'Based in', v: 'Bengaluru, India (UTC+5:30)' },
   { k: 'Relocation', v: 'Open to relocation' },
-  { k: 'Work authorisation', v: 'Needs employer visa sponsorship' },
+  { k: 'Work authorisation', v: 'Needs employer visa sponsorship outside India' },
   { k: 'Experience', v: 'Over 5 years in data science and credit risk strategy' },
   {
     k: 'Roles',
