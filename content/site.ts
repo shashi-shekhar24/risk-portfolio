@@ -17,7 +17,7 @@ export const site = {
   resumePdf: '/resume-shashi-shekhar.pdf',
   calendly: 'https://calendly.com/shashi__shekhar',
   linkedin: 'https://www.linkedin.com/in/shashi--shekhar',
-  email: 'shashishekhar.ds@gmail.com',
+  email: 's.shashi24@outlook.com',
   title: 'Shashi Shekhar | Credit Risk Strategy and Decision Science',
   description:
     'Credit risk strategist and data scientist in business lending. Designs underwriting rules, default definitions and loan-level profitability models, including Open Banking underwriting launched in the UK and US. Open to relocation; requires visa sponsorship.',
@@ -41,7 +41,7 @@ export const hiring = [
   { k: 'Based in', v: 'Bengaluru, India (UTC+5:30)' },
   { k: 'Relocation', v: 'Open to relocation' },
   { k: 'Work authorisation', v: 'Needs employer visa sponsorship' },
-  { k: 'Experience', v: 'In analytics and credit risk since January 2021' },
+  { k: 'Experience', v: 'Data Science and Credit Risk Strategy' },
   {
     k: 'Roles',
     v: 'Senior Credit Risk Analyst, Senior Decision Scientist, Senior Data Scientist (Credit Risk), Credit Strategy Manager',
@@ -181,8 +181,8 @@ export const principles = [
     body: 'A bureau file says how a business paid in the past. Bank-transaction data shows the cash coming in now. That is why I have built underwriting rules on Open Banking data for two markets.',
   },
   {
-    title: 'A decline has to come with a reason.',
-    body: 'If a business is declined, the lender must be able to say why in plain terms that a compliance reviewer accepts. A feature that cannot produce that reason does not ship, however much lift it shows. I learned that first-hand.',
+    title: 'Cut-offs belong to the P&L, not the scorecard.',
+    body: 'A low probability of default does not make a loan worth booking. In repeat lending most of the value sits in renewals, so I set score-band cut-offs and guide pricing from each segment’s lifetime profit and loss, not from default risk alone.',
   },
 ];
 
