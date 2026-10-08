@@ -20,11 +20,11 @@ export const site = {
   email: 'shashishekhar.ds@gmail.com',
   title: 'Shashi Shekhar | Credit Risk Strategy and Decision Science',
   description:
-    'Credit risk strategist and data scientist in business lending. Designs underwriting rules, default definitions and loan-level profitability models, including Open Banking underwriting launched in the UK and US. Open to roles in the UK and Netherlands.',
+    'Credit risk strategist and data scientist in business lending. Designs underwriting rules, default definitions and loan-level profitability models, including Open Banking underwriting launched in the UK and US. Open to relocation; requires visa sponsorship.',
 };
 
 export const hero = {
-  status: 'Open to senior credit risk and decision science roles in the UK and Netherlands',
+  status: 'Open to senior credit risk and decision science roles. Open to relocation.',
   headline:
     'I design underwriting rules and default models for a $2B+ business lending book, including Open Banking underwriting launched in the UK and US.',
   sub: 'My work decides which businesses are eligible for a loan, at what price and credit line, and what each loan earns over its life.',
@@ -39,7 +39,7 @@ export const hero = {
 /** Facts a recruiter or hiring manager abroad needs before a first call. */
 export const hiring = [
   { k: 'Based in', v: 'Bengaluru, India (UTC+5:30)' },
-  { k: 'Relocating to', v: 'United Kingdom or the Netherlands' },
+  { k: 'Relocation', v: 'Open to relocation' },
   { k: 'Work authorisation', v: 'Needs employer visa sponsorship' },
   { k: 'Experience', v: 'In analytics and credit risk since January 2021' },
   {
@@ -115,12 +115,12 @@ export const caseStudies: CaseStudy[] = [
     id: 'cltv-framework',
     context: 'Business lending · Portfolio economics',
     title: 'What is a borrower actually worth?',
-    outcome: 'A 60-month lifetime-value model showing which segments earn back their acquisition cost, and which do not.',
+    outcome: 'A multi-year lifetime-value model showing which segments earn back their acquisition cost, and which do not.',
     flowLabel: 'From loan history to a decision',
     flow: [
       'Cohort triangles by origination month',
       'Chain-ladder forecast of each curve',
-      'Overrides logged in a 16-stage pipeline',
+      'Every analyst override logged',
       'Profit and loss per account',
       'Decision table by segment',
     ],
@@ -135,11 +135,11 @@ export const caseStudies: CaseStudy[] = [
       },
       {
         label: 'Intervention',
-        text: 'I built a 60-month profit and loss per acquired account for 30 segments, by customer type and credit-score band. Each risk and behaviour curve is forecast by chain-ladder over origination-month triangles, using volume-weighted development factors: segment trends where the data is deep, portfolio trends where it is thin. Every analyst override goes through a 16-stage pipeline that logs it. The model then walks balances, fee revenue, credit loss, reserves, funding and acquisition costs through to discounted return, with a delinquency stress test.',
+        text: 'I built a multi-year profit and loss per acquired account, segmented by customer type and credit-score band. Each risk and behaviour curve is forecast by chain-ladder over origination-month triangles, using volume-weighted development factors: segment trends where the data is deep, portfolio trends where it is thin. Every analyst override goes through a pipeline that logs it. The model then walks balances, fee revenue, credit loss, reserves, funding and acquisition costs through to discounted return, with a delinquency stress test.',
       },
       {
         label: 'Outcome',
-        text: 'A decision table of renewals, revenue, loss, cost and return by score band and customer type at two and five years. It is used to set score-band cut-offs and to guide pricing and acquisition decisions.',
+        text: 'A decision table of renewals, revenue, loss, cost and return by score band and customer type over short and long horizons. It is used to set score-band cut-offs and to guide pricing and acquisition decisions.',
       },
     ],
   },
@@ -232,13 +232,4 @@ export const education = {
   degree: 'B.Tech, Electronics & Communication Engineering',
   school: 'IIIT Guwahati, India',
   year: '2019',
-};
-
-export const didNotShip = {
-  title: 'One that didn’t ship',
-  paragraphs: [
-    'I engineered cash-flow features that used a Fast Fourier Transform on each merchant’s transaction series to find the business’s dominant cycle, then measured the recency, frequency and value of deposits against that cycle instead of a fixed calendar month.',
-    'The work advanced to formal compliance review and was set aside. The reviewers judged it too complex, and there was no industry precedent for it.',
-    'I now test whether a feature can be explained to a reviewer, and to the business it declines, before I measure its lift.',
-  ],
 };

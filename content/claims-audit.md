@@ -14,7 +14,6 @@ not absolute figures, and Context / Diagnosis / Intervention / Outcome.
 | Multi-horizon default definition, champion-challenger, stability monitoring | Method only; horizons and thresholds not given |
 | CLTV framework: performance curves by chain-ladder, margin stack | Method only; no curve count, horizon or margin inputs |
 | Decision engine: internal models plus bureau scores, three paths | Structure only; no model names, counts or cutoffs |
-| Cycle-aware cash-flow features, set aside at compliance review | Published signal-processing method; no parameters |
 | Liquiloans 10%, 0.5%, 30%; Jodo 40%, 80%; Accelera 10% | Relative figures only |
 | Team sizes and dates of employment | Personal career facts |
 

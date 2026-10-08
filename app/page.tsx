@@ -8,7 +8,6 @@ import {
   principles,
   experience,
   education,
-  didNotShip,
   type CaseStudy,
 } from '@/content/site';
 
@@ -206,7 +205,7 @@ function Approach() {
         <h2 id="approach-h" className={`${h2} mb-9 max-w-[560px]`}>
           Three things the work has taught me.
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {principles.map(p => (
             <article key={p.title} className="rounded-xl bg-surface border border-border p-6">
               <h3 className="text-[1rem] font-semibold leading-[1.4] text-ink mb-3">{p.title}</h3>
@@ -214,16 +213,6 @@ function Approach() {
             </article>
           ))}
         </div>
-        <article className="rounded-xl bg-surface border border-border p-6 md:p-8">
-          <h3 className="text-[1rem] font-semibold leading-[1.4] text-ink mb-3">{didNotShip.title}</h3>
-          <div className="space-y-3 max-w-[760px]">
-            {didNotShip.paragraphs.map(t => (
-              <p key={t} className="text-[0.9rem] leading-[1.7] text-ink2">
-                {t}
-              </p>
-            ))}
-          </div>
-        </article>
       </div>
     </section>
   );
@@ -282,10 +271,10 @@ function Contact() {
         <div>
           <p className={`${eyebrow} mb-3`}>Contact</p>
           <h2 id="contact-h" className={`${h2} mb-4`}>
-            Hiring for credit risk in the UK or the Netherlands?
+            Hiring for credit risk?
           </h2>
           <p className="text-[0.95rem] leading-[1.7] text-ink2 max-w-[460px]">
-            I am based in Bengaluru and will relocate. I need visa sponsorship, and I am glad to talk through
+            I am based in Bengaluru and open to relocation. I need visa sponsorship, and I am glad to talk through
             timing on a first call.
           </p>
         </div>
