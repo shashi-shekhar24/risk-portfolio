@@ -1,0 +1,75 @@
+%-----------------------------------------------------------------------
+% Shashi Shekhar - public resume (Credit Risk Strategy)
+% Source of public/resume-shashi-shekhar.pdf. This repository is public:
+% every claim here must also pass content/claims-audit.md. No phone number.
+% Builds with pdfLaTeX (Overleaf) or XeLaTeX/Tectonic.
+%-----------------------------------------------------------------------
+\documentclass[10pt,a4paper]{article}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage[scaled=0.92]{helvet}
+  \input{glyphtounicode}
+  \pdfgentounicode=1
+\else
+  \usepackage{fontspec}
+  \defaultfontfeatures{Extension=.otf, UprightFont=*-regular, BoldFont=*-bold,
+    ItalicFont=*-italic, BoldItalicFont=*-bolditalic, Scale=0.92,
+    Ligatures={NoCommon, TeX}, Kerning=Off} % no ff/fi glyphs or kern gaps, so ATS parsers read plain words
+  \setmainfont{texgyreheros}
+  \setsansfont{texgyreheros}
+\fi
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage[a4paper,top=0.45in,bottom=0.4in,left=0.55in,right=0.55in]{geometry}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage[hidelinks]{hyperref}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\hyphenpenalty=10000 \exhyphenpenalty=10000 \raggedright
+\titleformat{\section}{\normalsize\bfseries\uppercase}{}{0pt}{}[\vspace{-6pt}\rule{\linewidth}{0.5pt}]
+\titlespacing*{\section}{0pt}{7pt}{4pt}
+\setlist[itemize]{leftmargin=1.2em,itemsep=1.2pt,topsep=2pt,parsep=0pt,partopsep=0pt}
+\newcommand{\role}[2]{\vspace{3pt}\textbf{#1}\hfill\textit{#2}\par}
+\begin{document}
+
+{\LARGE\bfseries Shashi Shekhar}\par\vspace{2pt}
+{\large Credit Risk Strategy}\par\vspace{3pt}
+{\small \href{mailto:s.shashi24@outlook.com}{s.shashi24@outlook.com} \textbar{} \href{https://www.linkedin.com/in/shashi--shekhar}{linkedin.com/in/shashi-{}-shekhar} \textbar{} Bengaluru, India \textbar{} Open to relocation}\par
+\section{Professional Summary}
+Credit risk strategist with 5+ years in lending analytics, currently in Global Credit Risk at PayPal on a \$2B+ business lending book. I design credit policy, default definitions and loan-level profitability models, and take them from analysis to the production rule engine. I report early-delinquency and guardrail metrics to the credit risk committee.\par
+\section{Skills}
+\textbf{Credit strategy:} Credit policy and decision-engine design, buy-box design, swap-set analysis, risk grading, PD calibration, champion-challenger testing, vintage loss (VLR) and gross credit loss (GCL) analysis, multi-horizon default definition, pricing and line assignment, loan-level P\&L (CLTV), Open Banking underwriting, IFRS 9 PD/EAD/LGD, collections early warning\par\vspace{1pt}
+\textbf{Modelling:} Gradient boosting (XGBoost, LightGBM), scorecards, CART, survival analysis (Cox PH), SHAP\par\vspace{1pt}
+\textbf{Data and tools:} Python, SQL, R, PySpark, AWS, Snowflake, Tableau, Power BI\par\vspace{1pt}
+\section{Professional Experience}
+\role{Data Scientist, Global Credit Risk}{PayPal, Bengaluru | Nov 2024 -- Present}
+\begin{itemize}
+  \item Redesigned US credit policy using commercial bureau data and PD calibration, and built the models behind it: defined the buy box, ran swap-set analysis against the previous rule strategy, determined gross credit loss (GCL) under balance control and assigned risk grades by t-statistics. \textbf{3\% uplift in post-bureau eligibility} and \textbf{\$150MM more in booked loans} at a \textbf{2\% lower vintage loss rate.}
+  \item Designed a \textbf{multi-horizon default definition} after showing that a single early delinquency indicator was statistically insufficient; validated by champion-challenger with population stability monitoring; adopted as the production rule layer, cutting vintage loss rate by \textbf{2.5\%} with a realised profit uplift.
+  \item Built a multi-year \textbf{lifetime-value (CLTV) model} by score band and customer type, showing which segments \textbf{earn back their acquisition cost}; sets the score-band cut-off strategy and guides pricing and acquisition decisions.
+  \item Designed the approve/decline underwriting rules for a \textbf{UK Open Banking business-loan launch;} the production rule engine adopted them unchanged.
+  \item Designed a bank-based underwriting decision engine: consolidated redundant legacy rules and combined internal PD models with external bureau scores across bureau, Open Banking and no-document paths, all resolving to pricing and line assignment.
+  \item Launched Open Banking underwriting for US business loans and eliminated data-extraction failures within weeks of launch.
+  \item Direct 2 external consultant data scientists.
+\end{itemize}
+\role{Senior Manager, Analytics -- Risk \& Data Science}{Liquiloans, Mumbai | Feb 2024 -- Oct 2024}
+\begin{itemize}
+  \item Led a \textbf{team of 5} (3 full-time, 2 interns) across scorecards, collections and credit strategy.
+  \item Built application, behaviour and propensity scorecards (gradient boosting, SHAP): \textbf{10\% uplift in approval rate} and \textbf{0.5\% reduction in NPA}.
+  \item Built the early-warning system used by collections and credit teams, raising \textbf{collection efficiency 30\%;} developed cross-sell and partnership credit strategies from loss forecasting (IFRS 9 PD/EAD/LGD).
+\end{itemize}
+\role{Business Analyst -- Strategy, Growth \& Risk}{Jodo, Bengaluru | Oct 2022 -- Dec 2023}
+\begin{itemize}
+  \item Built the company's first in-house credit risk model, from zero: 40\% faster underwriting turnaround and a newly identified customer segment. Managed 2 interns.
+  \item Built the AWS data warehouse pipeline (Glue, PySpark), cutting data turnaround 40$\times$ and automating 80\% of ad-hoc reporting.
+\end{itemize}
+\role{Data Analyst -- Data Science Consulting}{Accelera Eloquent, New Delhi | Jan 2021 -- Oct 2022}
+\begin{itemize}
+  \item Built segmentation and NLP models for retail and eCommerce clients (footfall +30\%); a Bayesian A/B testing framework lifted new-product sales 10\%.
+\end{itemize}
+\section{Education}
+\textbf{B.Tech, Electronics \& Communication Engineering}\hfill\textit{IIIT Guwahati, India | 2019}\par
+\end{document}

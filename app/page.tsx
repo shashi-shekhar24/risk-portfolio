@@ -182,10 +182,10 @@ function Work() {
       <div className={`${wrap} py-14 md:py-24`}>
         <p className={`${eyebrow} mb-3`}>Selected work</p>
         <h2 id="work-h" className={`${h2} mb-3 max-w-[640px]`}>
-          Four pieces of work, each with the decision it changed.
+          Five pieces of work, each with the decision it changed.
         </h2>
         <p className="text-[0.95rem] leading-[1.7] text-ink2 max-w-[620px] mb-9">
-          Each one starts with the context, so you do not need to know the product to follow it. Figures are relative, and details covered by confidentiality are left out.
+          Each one starts with the context, so you do not need to know the product to follow it. Figures are shown without baselines, and details covered by confidentiality are left out.
         </p>
         <div className="space-y-5">
           {caseStudies.map((cs, i) => (

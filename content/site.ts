@@ -20,19 +20,19 @@ export const site = {
   email: 's.shashi24@outlook.com',
   title: 'Shashi Shekhar | Credit Risk Strategy and Decision Science',
   description:
-    'Credit risk strategist and data scientist in business lending. Designs underwriting rules, default definitions and loan-level profitability models, including Open Banking underwriting launched in the UK and US. Open to relocation; requires visa sponsorship.',
+    'Credit risk strategist and data scientist in business lending. Designs credit policy, default definitions and loan-level profitability models, including Open Banking underwriting launched in the UK and US. Open to relocation; requires visa sponsorship.',
 };
 
 export const hero = {
   status: 'Open to senior credit risk and decision science roles. Open to relocation.',
   headline:
-    'I design underwriting rules and default models for a $2B+ business lending book, including Open Banking underwriting launched in the UK and US.',
-  sub: 'My work decides which businesses are eligible for a loan, at what price and credit line, and what each loan earns over its life.',
+    'I design credit policy and PD models for a $2B+ business lending book, including Open Banking underwriting launched in the UK and US.',
+  sub: 'My work decides which businesses are approved, at what price and credit line, and what each loan earns over its life. I report early-delinquency and guardrail metrics to the credit risk committee.',
   proof: [
-    { n: '2 markets', d: 'Open Banking underwriting launched in the UK and US' },
+    { n: '+3%', d: 'Eligibility rate from a redesigned credit policy and new models' },
+    { n: '$150MM', d: 'More loans booked, at a 2% lower vintage loss rate than the prior strategy' },
+    { n: '2.5%', d: 'Lower vintage loss rate from a new default definition, with a realised profit uplift' },
     { n: '$2B+', d: 'Business lending book' },
-    { n: '3%', d: 'Eligibility uplift from redesigned rules' },
-    { n: '2.5%', d: 'Lower vintage loss rate, with a realised profit uplift' },
   ],
 };
 
@@ -41,10 +41,10 @@ export const hiring = [
   { k: 'Based in', v: 'Bengaluru, India (UTC+5:30)' },
   { k: 'Relocation', v: 'Open to relocation' },
   { k: 'Work authorisation', v: 'Needs employer visa sponsorship' },
-  { k: 'Experience', v: 'Data Science and Credit Risk Strategy' },
+  { k: 'Experience', v: 'Over 5 years in data science and credit risk strategy' },
   {
     k: 'Roles',
-    v: 'Senior Credit Risk Analyst, Senior Decision Scientist, Senior Data Scientist (Credit Risk), Credit Strategy Manager',
+    v: 'Senior Credit Risk Analyst, Senior Decision Scientist, Senior Data Scientist (Credit Risk), Credit Strategy Manager, Underwriting and Credit Policy Manager (SME lending)',
   },
 ];
 
@@ -59,6 +59,32 @@ export type CaseStudy = {
 };
 
 export const caseStudies: CaseStudy[] = [
+  {
+    id: 'credit-policy-redesign',
+    context: 'Business lending · Credit policy',
+    title: 'More approvals at a lower loss rate',
+    outcome: 'Eligibility up 3% and $150MM more in booked loans, at a 2% lower vintage loss rate than the previous rule strategy.',
+    flowLabel: 'How the new strategy was set and tested',
+    flow: ['Buy box defined', 'Swap-set analysis against the old rules', 'Gross credit loss under balance control', 'Risk grades assigned by t-statistics'],
+    rows: [
+      {
+        label: 'Context',
+        text: 'Every change to credit policy trades approvals against losses. Approving more is only worth it if the loans swapped in perform at least as well as the loans swapped out.',
+      },
+      {
+        label: 'Diagnosis',
+        text: 'Eligibility after the bureau check was set by the previous rule strategy. Raising it safely needed a view of exactly which applicants a new strategy would add and remove, and how each group would perform.',
+      },
+      {
+        label: 'Intervention',
+        text: 'I redesigned the eligibility rules and built the models behind them. I defined the buy box, ran swap-set analysis to compare the applicants swapped in and swapped out against the old strategy, used balance control to determine gross credit loss (GCL), and assigned risk grades using t-statistics.',
+      },
+      {
+        label: 'Outcome',
+        text: 'Post-bureau eligibility rose 3% and booked loans grew by $150MM, with a vintage loss rate 2% lower than under the previous rule strategy.',
+      },
+    ],
+  },
   {
     id: 'open-banking-underwriting',
     context: 'Business lending · UK and US',
@@ -122,7 +148,7 @@ export const caseStudies: CaseStudy[] = [
       'Chain-ladder forecast of each curve',
       'Every analyst override logged',
       'Profit and loss per account',
-      'Decision table by segment',
+      'Cut-off strategy by segment',
     ],
     rows: [
       {
@@ -135,11 +161,11 @@ export const caseStudies: CaseStudy[] = [
       },
       {
         label: 'Intervention',
-        text: 'I built a multi-year profit and loss per acquired account, segmented by customer type and credit-score band. Each risk and behaviour curve is forecast by chain-ladder over origination-month triangles, using volume-weighted development factors: segment trends where the data is deep, portfolio trends where it is thin. Every analyst override goes through a pipeline that logs it. The model then walks balances, fee revenue, credit loss, reserves, funding and acquisition costs through to discounted return, with a delinquency stress test.',
+        text: 'I built a multi-year profit and loss per acquired account, by customer type and credit-score band. It walks balances, fee revenue, credit loss, reserves, funding and acquisition costs through to discounted return, with a delinquency stress test. Risk and behaviour curves are forecast by chain-ladder on origination-month cohorts, and every analyst override is logged.',
       },
       {
         label: 'Outcome',
-        text: 'A decision table of renewals, revenue, loss, cost and return by score band and customer type over short and long horizons. It is used to set score-band cut-offs and to guide pricing and acquisition decisions.',
+        text: 'Renewals, revenue, loss, cost and return by score band and customer type, over short and long horizons. It sets the score-band cut-off strategy and guides pricing and acquisition decisions.',
       },
     ],
   },
@@ -147,9 +173,9 @@ export const caseStudies: CaseStudy[] = [
     id: 'underwriting-decision-engine',
     context: 'Business lending · Underwriting',
     title: 'Underwriting decision engine',
-    outcome: 'One engine in place of overlapping legacy rules. Eligibility up 3%.',
+    outcome: 'One engine in place of overlapping legacy rules, with every path resolving to price and credit line.',
     flowLabel: 'What the engine combines',
-    flow: ['Internal default models and bureau scores', 'Bureau, Open Banking and no-document paths', 'Price and credit line'],
+    flow: ['Internal PD models and bureau scores', 'Bureau, Open Banking and no-document paths', 'Price and credit line'],
     rows: [
       {
         label: 'Context',
@@ -161,11 +187,11 @@ export const caseStudies: CaseStudy[] = [
       },
       {
         label: 'Intervention',
-        text: 'Designed one engine that consolidates the legacy rules and combines several internal default models with external bureau scores. It has three paths: bureau-based, Open Banking with documents, and no-document automation.',
+        text: 'Designed one engine that consolidates the legacy rules and combines several internal PD models with external bureau scores. It has three paths: bureau-based, Open Banking with documents, and no-document automation.',
       },
       {
         label: 'Outcome',
-        text: 'Every path resolves to pricing and line assignment. Separately, my redesign of eligibility rules raised post-bureau eligibility by 3%.',
+        text: 'Every path resolves to pricing and line assignment, so one policy governs approval, price and credit line.',
       },
     ],
   },
@@ -193,7 +219,7 @@ export const experience = [
     company: 'PayPal',
     place: 'Bengaluru',
     lines: [
-      'Underwriting rules, default calibration and loan-level profitability for US and UK business lending. Report early-delinquency and guardrail metrics to the credit risk committee.',
+      'Credit policy, PD calibration and loan-level profitability for US and UK business lending. Report early-delinquency and guardrail metrics to the credit risk committee.',
       'Direct 2 external consultant data scientists.',
     ],
   },
