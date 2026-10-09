@@ -29,31 +29,50 @@ function Nav() {
   ] as const;
   return (
     <header className="sticky top-0 z-50 bg-bg/95 backdrop-blur border-b border-border">
-      <div className={`${wrap} flex items-center justify-between h-14`}>
-        <a href="#top" className="font-mono text-[0.75rem] font-medium tracking-[0.18em] uppercase text-ink">
+      <div className={`${wrap} flex items-center justify-between gap-3 h-14`}>
+        <a href="#top" className="font-mono text-[0.75rem] font-medium tracking-[0.18em] uppercase text-ink whitespace-nowrap">
           {site.name}
         </a>
-        <nav aria-label="Primary" className="flex items-center gap-6">
-          <ul className="hidden md:flex items-center gap-7" role="list">
-            {links.map(([label, href]) => (
-              <li key={href}>
-                <a href={href} className="text-[0.8rem] font-medium text-ink2 hover:text-ink">
-                  {label}
-                </a>
-              </li>
-            ))}
-          </ul>
+        <div className="flex items-center gap-6">
+          <nav aria-label="Primary" className="hidden md:block">
+            <ul className="flex items-center gap-7" role="list">
+              {links.map(([label, href]) => (
+                <li key={href}>
+                  <a href={href} className="text-[0.8rem] font-medium text-ink2 hover:text-ink">
+                    {label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
           <TrackedLink
             href={site.resumePdf}
             event={EV.RESUME_DOWNLOADED}
             data={{ source: 'nav' }}
             external
-            className="text-[0.78rem] font-semibold text-white bg-accent px-3.5 py-2 rounded hover:bg-[#4338CA] transition-colors"
+            className="shrink-0 whitespace-nowrap text-[0.78rem] font-semibold text-white bg-accent px-3.5 py-2 rounded hover:bg-[#4338CA] transition-colors"
           >
             Resume (PDF)
           </TrackedLink>
-        </nav>
+        </div>
       </div>
+      {/* Phones: every section link stays visible in a second row, so Contact is always one tap away. */}
+      <nav aria-label="Primary" className="md:hidden border-t border-border">
+        <ul className={`${wrap} flex items-center justify-between gap-4 h-11 overflow-x-auto`} role="list">
+          {links.map(([label, href]) => (
+            <li key={href}>
+              <a
+                href={href}
+                className={`flex items-center h-11 whitespace-nowrap text-[0.82rem] font-medium ${
+                  href === '#contact' ? 'text-accent font-semibold' : 'text-ink2'
+                }`}
+              >
+                {label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
     </header>
   );
 }
@@ -111,9 +130,9 @@ function Hiring() {
         <h2 id="hiring-h" className={`${eyebrow} mb-5`}>
           If you are hiring from abroad
         </h2>
-        <dl className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-5">
+        <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-10 gap-y-5">
           {hiring.map(h => (
-            <div key={h.k} className={h.k === 'Roles' ? 'md:col-span-2 lg:col-span-1' : ''}>
+            <div key={h.k}>
               <dt className="text-[0.72rem] font-semibold tracking-[0.08em] uppercase text-ink3 mb-1">{h.k}</dt>
               <dd className="text-[0.92rem] leading-[1.55] text-ink">{h.v}</dd>
             </div>
@@ -152,7 +171,7 @@ function Flow({ label, steps }: { label: string; steps: string[] }) {
 
 function Study({ cs, n }: { cs: CaseStudy; n: number }) {
   return (
-    <article id={cs.id} className="rounded-xl bg-surface border border-border p-5 md:p-9 scroll-mt-20">
+    <article id={cs.id} className="rounded-xl bg-surface border border-border p-5 md:p-9 scroll-mt-28 md:scroll-mt-20">
       <p className="font-mono text-[0.68rem] tracking-[0.14em] uppercase text-ink3 mb-2">
         {String(n).padStart(2, '0')} · {cs.context}
       </p>
@@ -178,7 +197,7 @@ function Study({ cs, n }: { cs: CaseStudy; n: number }) {
 
 function Work() {
   return (
-    <section id="work" aria-labelledby="work-h" className="bg-bg scroll-mt-14">
+    <section id="work" aria-labelledby="work-h" className="bg-bg scroll-mt-28 md:scroll-mt-14">
       <div className={`${wrap} py-14 md:py-24`}>
         <p className={`${eyebrow} mb-3`}>Selected work</p>
         <h2 id="work-h" className={`${h2} mb-3 max-w-[640px]`}>
@@ -199,7 +218,7 @@ function Work() {
 
 function Approach() {
   return (
-    <section id="approach" aria-labelledby="approach-h" className="bg-bgalt border-y border-border scroll-mt-14">
+    <section id="approach" aria-labelledby="approach-h" className="bg-bgalt border-y border-border scroll-mt-28 md:scroll-mt-14">
       <div className={`${wrap} py-14 md:py-24`}>
         <p className={`${eyebrow} mb-3`}>Approach</p>
         <h2 id="approach-h" className={`${h2} mb-9 max-w-[560px]`}>
@@ -220,7 +239,7 @@ function Approach() {
 
 function Experience() {
   return (
-    <section id="experience" aria-labelledby="exp-h" className="bg-bg scroll-mt-14">
+    <section id="experience" aria-labelledby="exp-h" className="bg-bg scroll-mt-28 md:scroll-mt-14">
       <div className={`${wrap} py-14 md:py-24`}>
         <p className={`${eyebrow} mb-3`}>Experience</p>
         <h2 id="exp-h" className={`${h2} mb-9`}>
@@ -262,11 +281,11 @@ function Contact() {
   const rows = [
     { k: 'Call', v: 'Book a 30-minute call', href: site.calendly, ev: EV.CALENDLY_CLICKED, ext: true },
     { k: 'Email', v: site.email, href: `mailto:${site.email}`, ev: EV.EMAIL_CLICKED, ext: false },
-    { k: 'LinkedIn', v: 'linkedin.com/in/shashi--shekhar', href: site.linkedin, ev: EV.LINKEDIN_CLICKED, ext: true },
+    { k: 'LinkedIn', v: 'in/shashi--shekhar', href: site.linkedin, ev: EV.LINKEDIN_CLICKED, ext: true },
     { k: 'Resume', v: 'Download the one-page PDF', href: site.resumePdf, ev: EV.RESUME_DOWNLOADED, ext: true },
   ];
   return (
-    <section id="contact" aria-labelledby="contact-h" className="bg-bgalt border-t border-border scroll-mt-14">
+    <section id="contact" aria-labelledby="contact-h" className="bg-bgalt border-t border-border scroll-mt-28 md:scroll-mt-14">
       <div className={`${wrap} py-14 md:py-24 grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20`}>
         <div>
           <p className={`${eyebrow} mb-3`}>Contact</p>
@@ -291,10 +310,10 @@ function Contact() {
                 <span className="text-[0.72rem] font-semibold tracking-[0.08em] uppercase text-ink3 w-20 shrink-0">
                   {r.k}
                 </span>
-                <span className="flex-1 text-[0.98rem] text-ink group-hover:text-accent break-all sm:break-normal">
+                <span className="flex-1 min-w-0 text-[0.98rem] text-ink group-hover:text-accent break-words">
                   {r.v}
                 </span>
-                <span aria-hidden="true" className="text-ink3 group-hover:text-accent">
+                <span aria-hidden="true" className="shrink-0 text-ink3 group-hover:text-accent">
                   →
                 </span>
               </TrackedLink>

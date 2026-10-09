@@ -42,10 +42,6 @@ export const hiring = [
   { k: 'Relocation', v: 'Open to relocation' },
   { k: 'Work authorisation', v: 'Needs employer visa sponsorship outside India' },
   { k: 'Experience', v: 'Over 5 years in data science and credit risk strategy' },
-  {
-    k: 'Roles',
-    v: 'Senior Credit Risk Analyst, Senior Decision Scientist, Senior Data Scientist (Credit Risk), Credit Strategy Manager, Underwriting and Credit Policy Manager (SME lending)',
-  },
 ];
 
 export type CaseStudy = {
